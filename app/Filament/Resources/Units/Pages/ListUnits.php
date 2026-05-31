@@ -1,0 +1,23 @@
+<?php
+
+namespace App\Filament\Resources\Units\Pages;
+
+use App\Filament\Concerns\HasResourceExcelActions;
+use App\Filament\Resources\Units\UnitResource;
+use Filament\Actions\CreateAction;
+use Filament\Resources\Pages\ListRecords;
+
+class ListUnits extends ListRecords
+{
+    use HasResourceExcelActions;
+
+    protected static string $resource = UnitResource::class;
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            CreateAction::make(),
+            ...$this->getExcelHeaderActions(),
+        ];
+    }
+}

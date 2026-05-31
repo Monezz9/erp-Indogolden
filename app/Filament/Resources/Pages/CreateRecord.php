@@ -1,0 +1,11 @@
+<?php
+
+namespace App\Filament\Resources\Pages;
+
+abstract class CreateRecord extends \Filament\Resources\Pages\CreateRecord
+{
+    protected function getRedirectUrl(): string
+    {
+        return static::getResource()::getUrl('index');
+    }
+}
