@@ -15,6 +15,7 @@ class ProductionService
 {
     public function __construct(
         protected StockMovementService $stockMovementService,
+        protected StockBalanceService $stockBalanceService,
         protected ActivityLogService $activityLogService,
     ) {
     }
@@ -115,6 +116,8 @@ class ProductionService
         return DB::transaction(function () use ($order, $actor, $warehouseId) {
             $order->loadMissing('inputs.item.defaultStage', 'outputs.item.defaultStage');
 
+            $this->refreshInputCosts($order, $warehouseId);
+
             $consumptionMovement = $this->stockMovementService->createDraft(
                 movementData: [
                     'movement_number' => 'SM-'.now()->format('YmdHisv'),
@@ -141,6 +144,16 @@ class ProductionService
             $this->stockMovementService->approve($consumptionMovement, $actor);
 
             $outputUnitCost = $order->inputs->sum('total_cost') / max(1, (float) $order->outputs->sum('qty'));
+            $order->outputs->each(function ($output) use ($outputUnitCost): void {
+                $unitCost = (float) $output->unit_cost > 0 ? (float) $output->unit_cost : $outputUnitCost;
+
+                $output->update([
+                    'unit_cost' => $unitCost,
+                    'total_cost' => (float) $output->qty * $unitCost,
+                ]);
+            });
+
+            $order->load('outputs');
 
             $outputMovement = $this->stockMovementService->createDraft(
                 movementData: [
@@ -188,5 +201,34 @@ class ProductionService
 
             return $order->fresh(['inputs', 'outputs']);
         });
+    }
+
+    protected function refreshInputCosts(ProductionOrder $order, ?int $warehouseId = null): void
+    {
+        $order->inputs->each(function ($input) use ($warehouseId): void {
+            $stageId = $input->stage_id ?: $input->item->default_stage_id;
+            $resolvedWarehouseId = $warehouseId ?? $input->warehouse_id;
+
+            $balance = $this->stockBalanceService->getOrCreate(
+                itemId: $input->item_id,
+                stageId: (int) $stageId,
+                warehouseId: $resolvedWarehouseId,
+                branchId: null,
+                stockBatchId: null,
+            );
+
+            $unitCost = (float) ($balance?->avg_cost ?? 0);
+
+            if ($unitCost <= 0) {
+                $unitCost = (float) ($input->item->latest_weighted_avg_cost ?: $input->item->purchase_price);
+            }
+
+            $input->update([
+                'unit_cost' => $unitCost,
+                'total_cost' => (float) $input->actual_qty * $unitCost,
+            ]);
+        });
+
+        $order->load('inputs');
     }
 }

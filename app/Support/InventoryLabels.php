@@ -7,8 +7,8 @@ class InventoryLabels
     public static function stage(?string $code, ?string $fallback = null): string
     {
         return [
-            'raw_dirty' => 'RM - Bahan Mentah',
-            'raw_clean' => 'SRM - Bahan Sortir',
+            'raw_dirty' => 'Stok Mentah Kotor',
+            'raw_clean' => 'Stok Mentah Bersih',
             'wip' => 'WIP - Proses Produksi',
             'finished_goods' => 'FG - Barang Jadi',
             'branch_stock' => 'Stok Cabang',
@@ -32,10 +32,10 @@ class InventoryLabels
     public static function itemType(?string $type): string
     {
         return [
-            'material' => 'Barang',
-            'semi_finished' => 'Setengah Jadi',
-            'product' => 'Produk Jadi',
-            'packaging' => 'Kemasan',
+            'material' => 'RM',
+            'semi_finished' => 'SRM',
+            'product' => 'FG',
+            'packaging' => 'MRO',
             'service' => 'Jasa',
         ][$type ?? ''] ?? ($type ?: '-');
     }

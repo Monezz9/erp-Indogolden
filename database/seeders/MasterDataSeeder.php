@@ -156,10 +156,17 @@ class MasterDataSeeder extends Seeder
             ['sku' => 'RM-RAWIT', 'name' => 'Cabe Rawit', 'category' => 'raw-material', 'unit' => 'KG', 'stage' => ItemStageCode::RawDirty->value, 'type' => 'material'],
             ['sku' => 'RM-BAPUT', 'name' => 'Bawang Putih', 'category' => 'raw-material', 'unit' => 'KG', 'stage' => ItemStageCode::RawClean->value, 'type' => 'material'],
             ['sku' => 'RM-MINYAK', 'name' => 'Minyak', 'category' => 'raw-material', 'unit' => 'LTR', 'stage' => ItemStageCode::RawClean->value, 'type' => 'material'],
+            ['sku' => 'RM-PENYEDAP', 'name' => 'Penyedap', 'category' => 'raw-material', 'unit' => 'GR', 'stage' => ItemStageCode::RawClean->value, 'type' => 'material'],
+            ['sku' => 'RM-MICIN', 'name' => 'Micin', 'category' => 'raw-material', 'unit' => 'GR', 'stage' => ItemStageCode::RawClean->value, 'type' => 'material'],
+            ['sku' => 'RM-GARAM', 'name' => 'Garam', 'category' => 'raw-material', 'unit' => 'GR', 'stage' => ItemStageCode::RawClean->value, 'type' => 'material'],
+            ['sku' => 'RM-LADA', 'name' => 'Lada', 'category' => 'raw-material', 'unit' => 'GR', 'stage' => ItemStageCode::RawClean->value, 'type' => 'material'],
+            ['sku' => 'RM-GULA', 'name' => 'Gula', 'category' => 'raw-material', 'unit' => 'GR', 'stage' => ItemStageCode::RawClean->value, 'type' => 'material'],
             ['sku' => 'WIP-PREMIX', 'name' => 'Premix Bumbu', 'category' => 'premix', 'unit' => 'KG', 'stage' => ItemStageCode::Wip->value, 'type' => 'semi_finished'],
+            ['sku' => 'FG-PREMIX', 'name' => 'Premix', 'category' => 'finished-goods', 'unit' => 'PCS', 'stage' => ItemStageCode::FinishedGoods->value, 'type' => 'product'],
             ['sku' => 'FG-PASTA-K', 'name' => 'Pasta Kencur', 'category' => 'finished-goods', 'unit' => 'PCS', 'stage' => ItemStageCode::FinishedGoods->value, 'type' => 'product'],
             ['sku' => 'FG-CUANKI', 'name' => 'Cuanki Frozen', 'category' => 'finished-goods', 'unit' => 'PACK', 'stage' => ItemStageCode::FinishedGoods->value, 'type' => 'product'],
             ['sku' => 'MRO-CUP', 'name' => 'Cup Plastik', 'category' => 'mro', 'unit' => 'PCS', 'stage' => ItemStageCode::Mro->value, 'type' => 'packaging'],
+            ['sku' => 'MRO-PLASTIK-PREMIX', 'name' => 'Plastik Premix', 'category' => 'mro', 'unit' => 'PCS', 'stage' => ItemStageCode::Mro->value, 'type' => 'packaging'],
             ['sku' => 'AN-GULACAIR', 'name' => 'Gula Cair', 'category' => 'analysis', 'unit' => 'LTR', 'stage' => ItemStageCode::Analysis->value, 'type' => 'semi_finished'],
         ];
 
@@ -206,6 +213,67 @@ class MasterDataSeeder extends Seeder
                 'unit_id' => $units['LTR'],
                 'stage_id' => $stageIds[ItemStageCode::RawClean->value],
                 'qty' => 4,
+                'is_optional' => false,
+            ],
+        ]);
+
+        $premix = Item::query()->where('sku', 'FG-PREMIX')->firstOrFail();
+
+        $premixRecipe = ProductionRecipe::query()->updateOrCreate(
+            ['code' => 'RC-FG-PREMIX'],
+            [
+                'name' => 'Premix Standard',
+                'output_item_id' => $premix->id,
+                'output_unit_id' => $units['PCS'],
+                'output_qty' => 1,
+                'yield_percentage' => 100,
+                'notes' => 'Resep spreadsheet 2/6: bahan gram menjadi 1 PCS Premix.',
+                'is_active' => true,
+            ],
+        );
+
+        $premixRecipe->ingredients()->delete();
+        $premixRecipe->ingredients()->createMany([
+            [
+                'item_id' => Item::query()->where('sku', 'RM-PENYEDAP')->value('id'),
+                'unit_id' => $units['GR'],
+                'stage_id' => $stageIds[ItemStageCode::RawClean->value],
+                'qty' => 80,
+                'is_optional' => false,
+            ],
+            [
+                'item_id' => Item::query()->where('sku', 'RM-MICIN')->value('id'),
+                'unit_id' => $units['GR'],
+                'stage_id' => $stageIds[ItemStageCode::RawClean->value],
+                'qty' => 22,
+                'is_optional' => false,
+            ],
+            [
+                'item_id' => Item::query()->where('sku', 'RM-GARAM')->value('id'),
+                'unit_id' => $units['GR'],
+                'stage_id' => $stageIds[ItemStageCode::RawClean->value],
+                'qty' => 18,
+                'is_optional' => false,
+            ],
+            [
+                'item_id' => Item::query()->where('sku', 'RM-LADA')->value('id'),
+                'unit_id' => $units['GR'],
+                'stage_id' => $stageIds[ItemStageCode::RawClean->value],
+                'qty' => 10,
+                'is_optional' => false,
+            ],
+            [
+                'item_id' => Item::query()->where('sku', 'RM-GULA')->value('id'),
+                'unit_id' => $units['GR'],
+                'stage_id' => $stageIds[ItemStageCode::RawClean->value],
+                'qty' => 26,
+                'is_optional' => false,
+            ],
+            [
+                'item_id' => Item::query()->where('sku', 'MRO-PLASTIK-PREMIX')->value('id'),
+                'unit_id' => $units['PCS'],
+                'stage_id' => $stageIds[ItemStageCode::Mro->value],
+                'qty' => 1,
                 'is_optional' => false,
             ],
         ]);

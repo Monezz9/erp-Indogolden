@@ -95,6 +95,7 @@ class OperationalLauncher extends Page
                 'accent' => 'slate',
                 'subtitle' => 'Kontrol order produksi, resep, HPP, dan flow material.',
                 'items' => [
+                    $this->item('Pembersihan Bahan', 'Posting bahan mentah kotor menjadi bahan mentah bersih beserta susutnya.', 'heroicon-o-sparkles', CleaningProcessWorkspace::getUrl(), 'Buka Pembersihan'),
                     $this->item('Perintah Produksi', 'Kelola order produksi dari bahan sampai hasil jadi.', 'heroicon-o-clipboard-document-check', ProductionOrderResource::getUrl(), 'Buka Order'),
                     $this->item('Resep Produksi', 'Atur komposisi bahan untuk proses produksi.', 'heroicon-o-beaker', ProductionRecipeResource::getUrl(), 'Buka Resep'),
                     $this->item('HPP', 'Hitung dan cek snapshot harga pokok produksi.', 'heroicon-o-calculator', HppCalculation::getUrl(), 'Hitung HPP'),

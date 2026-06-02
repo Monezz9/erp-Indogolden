@@ -45,9 +45,19 @@ class ProcurementRequestWorkspace extends Page
 
     public ?int $itemId = null;
 
+    public ?string $itemSearch = null;
+
+    public bool $showItemSearchResults = false;
+
     public ?int $unitId = null;
 
+    public ?int $purchaseUnitId = null;
+
     public ?string $itemKind = null;
+
+    public float $purchaseQty = 1;
+
+    public float $conversionQty = 1;
 
     public float $orderedQty = 1;
 
@@ -56,6 +66,11 @@ class ProcurementRequestWorkspace extends Page
     public float $taxAmount = 0;
 
     public string $status = 'all';
+
+    /**
+     * @var array<int, array{item_id: int, item_label: string, item_name: string, item_kind: ?string, unit_id: int, unit_label: string, purchase_unit_id: int, purchase_unit_label: string, purchase_qty: float, conversion_qty: float, ordered_qty: float, line_total: float, purchase_unit_cost: float, unit_cost: float, notes: ?string}>
+     */
+    public array $cart = [];
 
     public static function canAccess(): bool
     {
@@ -72,6 +87,71 @@ class ProcurementRequestWorkspace extends Page
         $this->warehouseId = $this->centralWarehouseId();
     }
 
+    public function addItemToCart(): void
+    {
+        if (! $this->itemId) {
+            Notification::make()->title('Pilih item terlebih dahulu')->warning()->send();
+
+            return;
+        }
+
+        try {
+            $item = Item::query()->with('category')->findOrFail($this->itemId);
+            $unitId = $this->unitId ?: $item->default_unit_id;
+            $purchaseUnitId = $this->purchaseUnitId ?: $unitId;
+
+            if (! $unitId || ! $purchaseUnitId) {
+                Notification::make()->title('Satuan item belum lengkap')->warning()->send();
+
+                return;
+            }
+
+            if ($this->purchaseQty <= 0 || $this->conversionQty <= 0 || $this->lineTotal() <= 0) {
+                Notification::make()->title('Qty, isi/satuan, dan total harga harus lebih besar dari 0')->warning()->send();
+
+                return;
+            }
+
+            $unitOptions = $this->unitOptions();
+
+            $this->cart[] = [
+                'item_id' => $item->id,
+                'item_label' => trim(($item->sku ? $item->sku.' - ' : '').$item->name),
+                'item_name' => $item->name,
+                'item_kind' => $this->itemKind ?: $item->category?->name,
+                'unit_id' => $unitId,
+                'unit_label' => $unitOptions[$unitId] ?? '-',
+                'purchase_unit_id' => $purchaseUnitId,
+                'purchase_unit_label' => $unitOptions[$purchaseUnitId] ?? '-',
+                'purchase_qty' => $this->purchaseQty,
+                'conversion_qty' => $this->conversionQty,
+                'ordered_qty' => $this->baseQty(),
+                'line_total' => $this->lineTotal(),
+                'purchase_unit_cost' => $this->purchaseUnitCost(),
+                'unit_cost' => $this->baseUnitCost(),
+                'notes' => ($this->itemKind ?: $item->category?->name) ? 'Kategori: '.($this->itemKind ?: $item->category?->name) : null,
+            ];
+
+            $this->resetLineInput();
+
+            Notification::make()->title('Barang ditambahkan ke draft PO')->success()->send();
+        } catch (Throwable $exception) {
+            Notification::make()->title('Gagal menambahkan barang')->body($exception->getMessage())->danger()->send();
+        }
+    }
+
+    public function removeCartItem(int $index): void
+    {
+        unset($this->cart[$index]);
+
+        $this->cart = array_values($this->cart);
+    }
+
+    public function clearCart(): void
+    {
+        $this->cart = [];
+    }
+
     public function createPurchaseOrder(PurchaseOrderService $service): void
     {
         $user = Auth::user();
@@ -80,10 +160,20 @@ class ProcurementRequestWorkspace extends Page
             return;
         }
 
+        if (! $this->supplierId) {
+            Notification::make()->title('Pilih supplier terlebih dahulu')->warning()->send();
+
+            return;
+        }
+
+        if ($this->cart === []) {
+            Notification::make()->title('Tambahkan minimal 1 barang ke draft PO')->warning()->send();
+
+            return;
+        }
+
         try {
             $this->warehouseId = $this->centralWarehouseId();
-
-            $item = Item::query()->findOrFail($this->itemId);
 
             $service->createDraft([
                 'po_number' => $this->transactionNumber,
@@ -92,18 +182,22 @@ class ProcurementRequestWorkspace extends Page
                 'order_date' => $this->orderDate,
                 'expected_date' => $this->orderDate,
                 'notes' => $this->notes,
-            ], [[
-                'item_id' => $item->id,
-                'unit_id' => $this->unitId ?: $item->default_unit_id,
-                'ordered_qty' => $this->orderedQty,
-                'unit_cost' => $this->unitCost,
+            ], array_map(fn (array $line): array => [
+                'item_id' => $line['item_id'],
+                'unit_id' => $line['unit_id'],
+                'purchase_unit_id' => $line['purchase_unit_id'],
+                'purchase_qty' => $line['purchase_qty'],
+                'conversion_qty' => $line['conversion_qty'],
+                'ordered_qty' => $line['ordered_qty'],
+                'unit_cost' => $line['unit_cost'],
+                'purchase_unit_cost' => $line['purchase_unit_cost'],
+                'line_total' => $line['line_total'],
                 'tax_amount' => 0,
-                'notes' => $this->itemKind ? 'Kategori: '.$this->itemKind : null,
-            ]], $user);
+                'notes' => $line['notes'],
+            ], $this->cart), $user);
 
-            $this->reset(['notes', 'itemId', 'unitId', 'itemKind']);
-            $this->orderedQty = 1;
-            $this->unitCost = 0;
+            $this->reset(['notes', 'cart']);
+            $this->resetLineInput();
             $this->taxAmount = 0;
             $this->transactionNumber = $this->nextTransactionNumber();
             $this->orderDate = now()->toDateString();
@@ -117,10 +211,48 @@ class ProcurementRequestWorkspace extends Page
 
     public function updatedItemId(?int $itemId): void
     {
-        $item = Item::query()->find($itemId);
+        $item = Item::query()
+            ->with(['category:id,name', 'defaultUnit:id,code'])
+            ->find($itemId);
 
-        $this->unitId = $item?->default_unit_id;
-        $this->unitCost = (float) ($item?->purchase_price ?? 0);
+        $this->fillSelectedItem($item);
+    }
+
+    public function updatedItemSearch(?string $value): void
+    {
+        $this->itemId = null;
+        $this->itemKind = null;
+        $this->unitId = null;
+        $this->purchaseUnitId = null;
+        $this->conversionQty = 1;
+        $this->unitCost = 0;
+        $this->showItemSearchResults = false;
+    }
+
+    public function openItemSearchResults(): void
+    {
+        $this->showItemSearchResults = trim((string) $this->itemSearch) !== '';
+    }
+
+    public function selectItem(int $itemId): void
+    {
+        $item = Item::query()
+            ->with(['category:id,name', 'defaultUnit:id,code'])
+            ->where('is_active', true)
+            ->find($itemId);
+
+        $this->fillSelectedItem($item);
+        $this->showItemSearchResults = false;
+    }
+
+    public function updatedPurchaseUnitId(): void
+    {
+        $this->conversionQty = $this->defaultConversionQty($this->purchaseUnitId, $this->unitId);
+    }
+
+    public function updatedUnitId(): void
+    {
+        $this->conversionQty = $this->defaultConversionQty($this->purchaseUnitId, $this->unitId);
     }
 
     public function submit(int $purchaseOrderId, PurchaseOrderService $service): void
@@ -196,13 +328,27 @@ class ProcurementRequestWorkspace extends Page
             ->value('id');
     }
 
-    public function itemOptions(): array
+    public function itemSearchResults(): array
     {
+        $search = trim((string) $this->itemSearch);
+
         return Item::query()
+            ->with('category:id,name')
+            ->where('is_active', true)
+            ->when($search !== '', function ($query) use ($search): void {
+                $query->where(function ($query) use ($search): void {
+                    $query->where('sku', 'like', '%'.$search.'%')
+                        ->orWhere('name', 'like', '%'.$search.'%');
+                });
+            })
+            ->orderBy('sku')
             ->orderBy('name')
-            ->get(['id', 'sku', 'name'])
-            ->mapWithKeys(fn (Item $item): array => [
-                $item->id => trim(($item->sku ? $item->sku.' - ' : '').$item->name),
+            ->limit(12)
+            ->get(['id', 'sku', 'name', 'item_category_id'])
+            ->map(fn (Item $item): array => [
+                'id' => $item->id,
+                'label' => $this->itemSearchLabel($item),
+                'category' => $item->category?->name ?? '-',
             ])
             ->all();
     }
@@ -219,15 +365,6 @@ class ProcurementRequestWorkspace extends Page
             ->all();
     }
 
-    public function itemKindOptions(): array
-    {
-        return [
-            'Mentah Keringan' => 'Mentah Keringan',
-            'Mentah Bumbu' => 'Mentah Bumbu',
-            'Premix' => 'Premix',
-        ];
-    }
-
     public function selectedItem(): ?Item
     {
         if (! $this->itemId) {
@@ -235,13 +372,49 @@ class ProcurementRequestWorkspace extends Page
         }
 
         return Item::query()
-            ->with(['defaultUnit:id,code'])
+            ->with(['category:id,name', 'defaultUnit:id,code'])
             ->find($this->itemId);
+    }
+
+    public function selectedItemCategoryLabel(): string
+    {
+        return $this->selectedItem()?->category?->name ?? '-';
+    }
+
+    public function selectedStockUnitCode(): string
+    {
+        if (! $this->unitId) {
+            return 'stok';
+        }
+
+        return Unit::query()->whereKey($this->unitId)->value('code') ?? 'stok';
     }
 
     public function lineTotal(): float
     {
-        return $this->orderedQty * $this->unitCost;
+        return $this->unitCost;
+    }
+
+    public function baseQty(): float
+    {
+        return $this->purchaseQty * $this->conversionQty;
+    }
+
+    public function baseUnitCost(): float
+    {
+        $baseQty = $this->baseQty();
+
+        return $baseQty > 0 ? $this->lineTotal() / $baseQty : 0;
+    }
+
+    public function purchaseUnitCost(): float
+    {
+        return $this->purchaseQty > 0 ? $this->lineTotal() / $this->purchaseQty : 0;
+    }
+
+    public function cartTotal(): float
+    {
+        return array_sum(array_column($this->cart, 'line_total'));
     }
 
     public function statusOptions(): array
@@ -260,5 +433,100 @@ class ProcurementRequestWorkspace extends Page
         $next = is_string($last) ? ((int) str($last)->afterLast('-')->toString()) + 1 : 1;
 
         return sprintf('%s-%04d', $prefix, $next);
+    }
+
+    protected function resetLineInput(): void
+    {
+        $this->reset(['itemId', 'itemSearch', 'unitId', 'purchaseUnitId', 'itemKind']);
+        $this->purchaseQty = 1;
+        $this->conversionQty = 1;
+        $this->orderedQty = 1;
+        $this->unitCost = 0;
+    }
+
+    protected function fillSelectedItem(?Item $item, bool $syncSearch = true): void
+    {
+        $this->itemId = $item?->id;
+        $this->unitId = $item?->default_unit_id;
+        $this->purchaseUnitId = $this->defaultPurchaseUnitId($item);
+        $this->conversionQty = $this->defaultConversionQty($this->purchaseUnitId, $this->unitId);
+        $this->unitCost = (float) ($item?->purchase_price ?? 0);
+        $this->itemKind = $item?->category?->name;
+
+        if ($syncSearch) {
+            $this->itemSearch = $item ? $this->itemSearchLabel($item) : null;
+        }
+    }
+
+    protected function resolveItemSearch(?string $value): ?Item
+    {
+        $search = trim((string) $value);
+
+        if ($search === '') {
+            return null;
+        }
+
+        $exact = Item::query()
+            ->with(['category:id,name', 'defaultUnit:id,code'])
+            ->where('is_active', true)
+            ->where(function ($query) use ($search): void {
+                $query->where('sku', $search)
+                    ->orWhere('name', $search);
+            })
+            ->first();
+
+        if ($exact) {
+            return $exact;
+        }
+
+        return Item::query()
+            ->with(['category:id,name', 'defaultUnit:id,code'])
+            ->where('is_active', true)
+            ->where(function ($query) use ($search): void {
+                $query->where('sku', 'like', '%'.$search.'%')
+                    ->orWhere('name', 'like', '%'.$search.'%');
+            })
+            ->limit(25)
+            ->get()
+            ->first(fn (Item $item): bool => $this->itemSearchLabel($item) === $search);
+    }
+
+    protected function itemSearchLabel(Item $item): string
+    {
+        return trim(($item->sku ? $item->sku.' - ' : '').$item->name);
+    }
+
+    protected function defaultPurchaseUnitId(?Item $item): ?int
+    {
+        if (! $item?->default_unit_id) {
+            return null;
+        }
+
+        if (strtoupper((string) $item->defaultUnit?->code) === 'GR') {
+            return Unit::query()->where('code', 'KG')->value('id') ?? $item->default_unit_id;
+        }
+
+        return $item->default_unit_id;
+    }
+
+    protected function defaultConversionQty(?int $purchaseUnitId, ?int $stockUnitId): float
+    {
+        if (! $purchaseUnitId || ! $stockUnitId) {
+            return 1;
+        }
+
+        $codes = Unit::query()
+            ->whereIn('id', [$purchaseUnitId, $stockUnitId])
+            ->pluck('code', 'id');
+
+        $purchaseCode = strtoupper((string) ($codes[$purchaseUnitId] ?? ''));
+        $stockCode = strtoupper((string) ($codes[$stockUnitId] ?? ''));
+
+        return match (true) {
+            $purchaseCode === $stockCode => 1,
+            $purchaseCode === 'KG' && in_array($stockCode, ['GR', 'G', 'GRAM'], true) => 1000,
+            in_array($purchaseCode, ['GR', 'G', 'GRAM'], true) && $stockCode === 'KG' => 0.001,
+            default => 1,
+        };
     }
 }

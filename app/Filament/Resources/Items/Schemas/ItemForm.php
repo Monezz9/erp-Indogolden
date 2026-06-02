@@ -3,13 +3,16 @@
 namespace App\Filament\Resources\Items\Schemas;
 
 use App\Models\ItemCategory;
+use App\Models\ItemStage;
 use App\Support\InventoryLabels;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 
 class ItemForm
@@ -18,6 +21,13 @@ class ItemForm
     {
         return $schema
             ->components([
+                Hidden::make('item_type')
+                    ->default('material'),
+                Hidden::make('default_stage_id'),
+                Hidden::make('requires_production')
+                    ->default(false),
+                Hidden::make('latest_weighted_avg_cost')
+                    ->default(0),
                 Section::make('Data Umum')
                     ->schema([
                         Grid::make([
@@ -42,18 +52,15 @@ class ItemForm
                                     )
                                     ->required()
                                     ->searchable()
-                                    ->preload(),
-                                Select::make('item_type')
-                                    ->label('Tipe Item')
-                                    ->options([
-                                        'material' => 'Barang',
-                                        'semi_finished' => 'Setengah Jadi',
-                                        'product' => 'Produk Jadi',
-                                        'packaging' => 'Kemasan / Pendukung',
-                                        'service' => 'Jasa',
-                                    ])
-                                    ->default('material')
-                                    ->required(),
+                                    ->preload()
+                                    ->live()
+                                    ->afterStateUpdated(function (Set $set, mixed $state): void {
+                                        $itemType = self::itemTypeFromCategory($state);
+
+                                        $set('item_type', $itemType);
+                                        $set('default_stage_id', self::stageIdFromCategory($state));
+                                        $set('requires_production', in_array($itemType, ['semi_finished', 'product'], true));
+                                    }),
                             ]),
                     ]),
 
@@ -72,22 +79,21 @@ class ItemForm
                                     ->searchable()
                                     ->preload()
                                     ->createOptionForm([
+                                        Hidden::make('precision')
+                                            ->default(0),
                                         TextInput::make('code')
                                             ->label('Kode Satuan')
                                             ->placeholder('Contoh: PCS, GR, KG, BALL')
                                             ->required()
                                             ->maxLength(20)
-                                            ->unique('units', 'code'),
+                                            ->unique('units', 'code')
+                                            ->live()
+                                            ->afterStateUpdated(fn (Set $set, mixed $state): mixed => $set('precision', self::unitPrecisionFromCode($state))),
                                         TextInput::make('name')
                                             ->label('Nama Satuan')
                                             ->placeholder('Contoh: Pieces, Gram, Kilogram, Ball')
                                             ->required()
                                             ->maxLength(255),
-                                        TextInput::make('precision')
-                                            ->label('Jumlah Desimal')
-                                            ->numeric()
-                                            ->default(0)
-                                            ->required(),
                                         Toggle::make('is_base')
                                             ->label('Satuan Dasar')
                                             ->default(true),
@@ -104,12 +110,9 @@ class ItemForm
                                     ->label('Harga Beli')
                                     ->numeric()
                                     ->step('any')
-                                    ->default(0),
-                                TextInput::make('latest_weighted_avg_cost')
-                                    ->label('Harga Pokok / HPP')
-                                    ->numeric()
-                                    ->step('any')
-                                    ->default(0),
+                                    ->default(0)
+                                    ->live()
+                                    ->afterStateUpdated(fn (Set $set, mixed $state): mixed => $set('latest_weighted_avg_cost', (float) $state)),
                                 TextInput::make('selling_price')
                                     ->label('Harga Jual')
                                     ->numeric()
@@ -125,9 +128,6 @@ class ItemForm
                             'md' => 3,
                         ])
                             ->schema([
-                                Toggle::make('requires_production')
-                                    ->label('Perlu Produksi')
-                                    ->default(false),
                                 Toggle::make('is_perishable')
                                     ->label('Mudah Rusak')
                                     ->default(false),
@@ -141,5 +141,41 @@ class ItemForm
                             ->columnSpanFull(),
                     ]),
             ]);
+    }
+
+    protected static function itemTypeFromCategory(mixed $categoryId): string
+    {
+        $categoryType = ItemCategory::query()->whereKey($categoryId)->value('category_type');
+
+        return match ($categoryType) {
+            'wip', 'analysis' => 'semi_finished',
+            'finished_goods' => 'product',
+            'mro' => 'packaging',
+            default => 'material',
+        };
+    }
+
+    protected static function stageIdFromCategory(mixed $categoryId): ?int
+    {
+        $categoryType = ItemCategory::query()->whereKey($categoryId)->value('category_type');
+
+        $stageCode = match ($categoryType) {
+            'wip' => 'wip',
+            'finished_goods' => 'finished_goods',
+            'mro' => 'mro',
+            'analysis' => 'analysis',
+            default => 'raw_dirty',
+        };
+
+        return ItemStage::query()->where('code', $stageCode)->value('id');
+    }
+
+    protected static function unitPrecisionFromCode(mixed $code): int
+    {
+        return match (strtoupper(trim((string) $code))) {
+            'KG' => 3,
+            'GR', 'G', 'GRAM', 'LTR', 'LITER', 'ML' => 2,
+            default => 0,
+        };
     }
 }
