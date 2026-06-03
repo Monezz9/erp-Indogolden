@@ -17,6 +17,7 @@ class BranchSale extends Model
         'sale_number',
         'sale_date',
         'branch_id',
+        'cashier_id',
         'status',
         'payment_method',
         'subtotal',
@@ -47,6 +48,11 @@ class BranchSale extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function cashier(): BelongsTo
+    {
+        return $this->belongsTo(Cashier::class);
     }
 
     public function items(): HasMany

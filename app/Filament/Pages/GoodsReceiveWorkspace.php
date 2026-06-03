@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use App\Enums\GoodsReceiptStatus;
 use App\Models\GoodsReceipt;
 use App\Models\PurchaseOrder;
+use App\Models\StockBalance;
 use App\Models\User;
 use App\Services\GoodsReceiptService;
 use BackedEnum;
@@ -23,6 +24,8 @@ class GoodsReceiveWorkspace extends Page
     protected static ?string $navigationLabel = 'Penerimaan Barang';
 
     protected static \UnitEnum|string|null $navigationGroup = 'Pengadaan';
+
+    protected static bool $shouldRegisterNavigation = false;
 
     protected static ?int $navigationSort = 3;
 
@@ -75,7 +78,7 @@ class GoodsReceiveWorkspace extends Page
     {
         return PurchaseOrder::query()
             ->receivable()
-            ->with(['supplier', 'warehouse', 'items.item'])
+            ->with(['supplier', 'warehouse', 'items.item', 'items.purchaseUnit', 'items.unit'])
             ->latest('id')
             ->limit(50)
             ->get();
@@ -87,11 +90,26 @@ class GoodsReceiveWorkspace extends Page
     public function receipts(): Collection
     {
         return GoodsReceipt::query()
-            ->with(['purchaseOrder.supplier', 'warehouse', 'items.item', 'items.unit'])
+            ->with(['purchaseOrder.supplier', 'warehouse', 'items.item', 'items.purchaseUnit', 'items.unit'])
             ->when($this->receiptStatus !== 'all', fn ($query) => $query->where('status', $this->receiptStatus))
             ->latest('id')
             ->limit(100)
             ->get();
+    }
+
+    public function stockOnHandForLine(mixed $line, ?int $warehouseId): float
+    {
+        $item = $line->item;
+
+        if (! $item?->default_stage_id || ! $warehouseId) {
+            return 0;
+        }
+
+        return (float) StockBalance::query()
+            ->where('item_id', $item->id)
+            ->where('stage_id', $item->default_stage_id)
+            ->where('warehouse_id', $warehouseId)
+            ->sum('qty_on_hand');
     }
 
     public function receiptStatusOptions(): array

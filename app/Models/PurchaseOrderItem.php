@@ -14,9 +14,13 @@ class PurchaseOrderItem extends Model
         'purchase_order_id',
         'item_id',
         'unit_id',
+        'purchase_unit_id',
+        'purchase_qty',
+        'conversion_qty',
         'ordered_qty',
         'received_qty',
         'unit_cost',
+        'purchase_unit_cost',
         'tax_amount',
         'line_total',
         'notes',
@@ -28,6 +32,9 @@ class PurchaseOrderItem extends Model
             'ordered_qty' => 'decimal:4',
             'received_qty' => 'decimal:4',
             'unit_cost' => 'decimal:4',
+            'purchase_qty' => 'decimal:4',
+            'conversion_qty' => 'decimal:4',
+            'purchase_unit_cost' => 'decimal:4',
             'tax_amount' => 'decimal:4',
             'line_total' => 'decimal:4',
         ];
@@ -46,6 +53,11 @@ class PurchaseOrderItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function purchaseUnit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class, 'purchase_unit_id');
     }
 
     public function remainingQty(): float

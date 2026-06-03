@@ -26,9 +26,11 @@ class ProcurementFinanceReviewWorkspace extends Page
 
     protected static ?int $navigationSort = 2;
 
-    public string $status = 'submitted';
+    public string $status = 'all';
 
     public ?string $financeNotes = null;
+
+    public ?int $reviewPurchaseOrderId = null;
 
     public static function canAccess(): bool
     {
@@ -53,7 +55,7 @@ class ProcurementFinanceReviewWorkspace extends Page
     public function rows(): Collection
     {
         return PurchaseOrder::query()
-            ->with(['supplier', 'warehouse', 'items.item', 'items.unit'])
+            ->with(['supplier', 'warehouse', 'items.item', 'items.unit', 'items.purchaseUnit'])
             ->when($this->status !== 'all', fn ($query) => $query->where('status', $this->status))
             ->latest('id')
             ->limit(100)
@@ -63,6 +65,13 @@ class ProcurementFinanceReviewWorkspace extends Page
     public function statusOptions(): array
     {
         return ['all' => 'Semua'] + PurchaseOrderStatus::options();
+    }
+
+    public function toggleReview(int $purchaseOrderId): void
+    {
+        $this->reviewPurchaseOrderId = $this->reviewPurchaseOrderId === $purchaseOrderId
+            ? null
+            : $purchaseOrderId;
     }
 
     protected function review(int $purchaseOrderId, PurchaseOrderService $service, bool $approved): void

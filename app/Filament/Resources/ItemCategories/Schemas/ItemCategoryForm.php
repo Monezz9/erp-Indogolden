@@ -14,9 +14,9 @@ class ItemCategoryForm
         return $schema
             ->components([
                 TextInput::make('name')->label('Nama Kategori Barang')->required()->maxLength(255),
-                TextInput::make('slug')->label('Slug')->required()->maxLength(255)->unique(ignoreRecord: true),
                 Select::make('category_type')
-                    ->label('Kelompok Stok')
+                    ->label('Kegunaan')
+                    ->helperText('Menentukan alur stok: bahan dibeli, proses produksi, barang jadi, operasional, atau analisis.')
                     ->required()
                     ->options([
                         'raw_material' => 'Bahan / Material',

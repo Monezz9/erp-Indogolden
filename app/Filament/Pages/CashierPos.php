@@ -7,6 +7,7 @@ use App\Enums\ItemStageCode;
 use App\Enums\PaymentMethod;
 use App\Models\Branch;
 use App\Models\BranchSale;
+use App\Models\Cashier;
 use App\Models\Item;
 use App\Models\StockBalance;
 use App\Models\User;
@@ -26,7 +27,7 @@ class CashierPos extends Page
 
     protected string $view = 'filament.pages.cashier-pos';
 
-    protected static ?string $title = 'POS Kasir';
+    protected static ?string $title = 'KASIR';
 
     protected static ?string $slug = 'pos-kasir';
 
@@ -36,17 +37,26 @@ class CashierPos extends Page
 
     protected static ?int $navigationSort = 1;
 
+    public function getHeading(): string
+    {
+        return '';
+    }
+
     public ?int $branchId = null;
 
     public ?string $saleNumber = null;
 
+    public ?int $cashierId = null;
+
     public ?string $cashierName = null;
+
+    public ?string $printReceiptUrl = null;
 
     public string $paymentMethod = 'cash';
 
     public string $brothType = 'kuah';
 
-    public int $spiceLevel = 1;
+    public int $spiceLevel = 0;
 
     public ?string $notes = null;
 
@@ -54,7 +64,7 @@ class CashierPos extends Page
 
     public ?int $unitId = null;
 
-    public float $qty = 1;
+    public float $qty = 0;
 
     public float $unitPrice = 0;
 
@@ -62,7 +72,7 @@ class CashierPos extends Page
 
     public ?int $drinkUnitId = null;
 
-    public float $drinkQty = 1;
+    public float $drinkQty = 0;
 
     public float $drinkUnitPrice = 0;
 
@@ -97,7 +107,10 @@ class CashierPos extends Page
             $this->branchId = $this->defaultBranchId();
         }
 
-        $this->cashierName = $user?->name;
+        $this->cashierId = $this->defaultCashierId();
+        $this->cashierName = $this->cashierId
+            ? Cashier::query()->whereKey($this->cashierId)->value('name')
+            : null;
         $this->saleNumber = $this->nextSaleNumber();
     }
 
@@ -109,13 +122,24 @@ class CashierPos extends Page
 
         $this->unitId = $item?->default_unit_id;
         $this->unitPrice = (float) ($item?->selling_price ?? 0);
-        $this->qty = 1;
+        $this->qty = 0;
     }
 
     public function updatedBranchId(): void
     {
         $this->saleNumber = $this->nextSaleNumber();
+        $this->cashierId = $this->defaultCashierId();
+        $this->cashierName = $this->cashierId
+            ? Cashier::query()->whereKey($this->cashierId)->value('name')
+            : null;
         $this->reset(['selectedItemId', 'unitId', 'selectedDrinkItemId', 'drinkUnitId']);
+    }
+
+    public function updatedCashierId(?int $cashierId): void
+    {
+        $this->cashierName = $cashierId
+            ? Cashier::query()->whereKey($cashierId)->value('name')
+            : null;
     }
 
     public function updatedSelectedDrinkItemId(?int $itemId): void
@@ -126,7 +150,7 @@ class CashierPos extends Page
 
         $this->drinkUnitId = $item?->default_unit_id;
         $this->drinkUnitPrice = (float) ($item?->selling_price ?? 0);
-        $this->drinkQty = 1;
+        $this->drinkQty = 0;
     }
 
     public function addItem(): void
@@ -174,7 +198,7 @@ class CashierPos extends Page
         ];
 
         $this->reset(['selectedItemId', 'unitId']);
-        $this->qty = 1;
+        $this->qty = 0;
         $this->unitPrice = 0;
     }
 
@@ -223,7 +247,7 @@ class CashierPos extends Page
         ];
 
         $this->reset(['selectedDrinkItemId', 'drinkUnitId']);
-        $this->drinkQty = 1;
+        $this->drinkQty = 0;
         $this->drinkUnitPrice = 0;
     }
 
@@ -241,7 +265,7 @@ class CashierPos extends Page
         $this->taxAmount = 0;
         $this->notes = null;
         $this->brothType = 'kuah';
-        $this->spiceLevel = 1;
+        $this->spiceLevel = 0;
     }
 
     public function checkout(BranchSaleService $service): void
@@ -268,12 +292,21 @@ class CashierPos extends Page
             return;
         }
 
+        if (! $this->cashierId) {
+            Notification::make()->title('Pilih kasir terlebih dahulu')->warning()->send();
+
+            return;
+        }
+
         try {
-            DB::transaction(function () use ($service, $actor): void {
+            $createdSale = null;
+
+            DB::transaction(function () use ($service, $actor, &$createdSale): void {
                 $sale = BranchSale::query()->create([
                     'sale_number' => $this->saleNumber ?: $this->nextSaleNumber(),
                     'sale_date' => now(),
                     'branch_id' => $this->branchId,
+                    'cashier_id' => $this->cashierId,
                     'status' => BranchSaleStatus::Draft,
                     'payment_method' => $this->paymentMethod,
                     'discount_amount' => $this->discountAmount,
@@ -293,6 +326,8 @@ class CashierPos extends Page
                 }
 
                 $service->post($sale, $actor);
+
+                $createdSale = $sale;
             });
 
             Notification::make()->title('Transaksi POS berhasil diposting')->success()->send();
@@ -300,6 +335,11 @@ class CashierPos extends Page
             $this->clearCart();
             $this->saleNumber = $this->nextSaleNumber();
             $this->paymentMethod = PaymentMethod::Cash->value;
+
+            if ($createdSale instanceof BranchSale) {
+                $this->printReceiptUrl = route('branch-sales.print.receipt', ['branchSale' => $createdSale]);
+                $this->dispatch('open-receipt', url: $this->printReceiptUrl);
+            }
         } catch (Throwable $exception) {
             Notification::make()
                 ->title('Transaksi POS gagal')
@@ -321,6 +361,22 @@ class CashierPos extends Page
     public function branchName(): string
     {
         return Branch::query()->whereKey($this->branchId)->value('name') ?? '-';
+    }
+
+    public function cashierOptions(): array
+    {
+        return Cashier::query()
+            ->where('is_active', true)
+            ->where(function ($query): void {
+                $query->whereNull('branch_id');
+
+                if ($this->branchId) {
+                    $query->orWhere('branch_id', $this->branchId);
+                }
+            })
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
     }
 
     public function itemOptions(): array
@@ -428,6 +484,22 @@ class CashierPos extends Page
             ?? Branch::query()
                 ->where('is_active', true)
                 ->value('id');
+    }
+
+    protected function defaultCashierId(): ?int
+    {
+        return Cashier::query()
+            ->where('is_active', true)
+            ->where(function ($query): void {
+                $query->whereNull('branch_id');
+
+                if ($this->branchId) {
+                    $query->orWhere('branch_id', $this->branchId);
+                }
+            })
+            ->orderByRaw('case when branch_id is null then 1 else 0 end')
+            ->orderBy('name')
+            ->value('id');
     }
 
     protected function checkoutNotes(): string

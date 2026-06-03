@@ -15,9 +15,13 @@ class GoodsReceiptItem extends Model
         'purchase_order_item_id',
         'item_id',
         'unit_id',
+        'purchase_unit_id',
+        'purchase_qty',
+        'conversion_qty',
         'ordered_qty',
         'received_qty',
         'unit_cost',
+        'purchase_unit_cost',
         'notes',
     ];
 
@@ -27,6 +31,9 @@ class GoodsReceiptItem extends Model
             'ordered_qty' => 'decimal:4',
             'received_qty' => 'decimal:4',
             'unit_cost' => 'decimal:4',
+            'purchase_qty' => 'decimal:4',
+            'conversion_qty' => 'decimal:4',
+            'purchase_unit_cost' => 'decimal:4',
         ];
     }
 
@@ -48,5 +55,10 @@ class GoodsReceiptItem extends Model
     public function unit(): BelongsTo
     {
         return $this->belongsTo(Unit::class);
+    }
+
+    public function purchaseUnit(): BelongsTo
+    {
+        return $this->belongsTo(Unit::class, 'purchase_unit_id');
     }
 }

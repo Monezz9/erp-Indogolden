@@ -33,6 +33,7 @@ class InventoryLabels
     {
         return [
             'material' => 'RM',
+            'premix' => 'Premix',
             'semi_finished' => 'SRM',
             'product' => 'FG',
             'packaging' => 'MRO',

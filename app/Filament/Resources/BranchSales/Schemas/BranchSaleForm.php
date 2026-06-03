@@ -42,6 +42,11 @@ class BranchSaleForm
                     ->default($isBranchUser ? $user?->branch_id : null)
                     ->disabled($isBranchUser)
                     ->dehydrated(),
+                Select::make('cashier_id')
+                    ->label('Kasir')
+                    ->relationship('cashier', 'name')
+                    ->searchable()
+                    ->preload(),
                 Select::make('status')
                     ->label('Status')
                     ->options(BranchSaleStatus::options())

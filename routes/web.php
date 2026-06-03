@@ -11,4 +11,7 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/branch-sales/{branchSale}/print/a4', [BranchSalePrintController::class, 'a4'])
         ->name('branch-sales.print.a4');
+
+    Route::get('/branch-sales/{branchSale}/print/receipt', [BranchSalePrintController::class, 'receipt'])
+        ->name('branch-sales.print.receipt');
 });

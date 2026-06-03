@@ -52,9 +52,13 @@ class GoodsReceiptService
                     'purchase_order_item_id' => $item->id,
                     'item_id' => $item->item_id,
                     'unit_id' => $item->unit_id,
+                    'purchase_unit_id' => $item->purchase_unit_id,
+                    'purchase_qty' => $item->purchase_qty,
+                    'conversion_qty' => $item->conversion_qty,
                     'ordered_qty' => $item->ordered_qty,
                     'received_qty' => $item->remainingQty(),
                     'unit_cost' => $item->unit_cost,
+                    'purchase_unit_cost' => $item->purchase_unit_cost,
                 ])
                 ->all();
 
@@ -178,9 +182,13 @@ class GoodsReceiptService
             'purchase_order_item_id' => Arr::get($itemData, 'purchase_order_item_id'),
             'item_id' => Arr::get($itemData, 'item_id'),
             'unit_id' => Arr::get($itemData, 'unit_id'),
+            'purchase_unit_id' => Arr::get($itemData, 'purchase_unit_id', Arr::get($itemData, 'unit_id')),
+            'purchase_qty' => Arr::get($itemData, 'purchase_qty', $receivedQty),
+            'conversion_qty' => Arr::get($itemData, 'conversion_qty', 1),
             'ordered_qty' => Arr::get($itemData, 'ordered_qty', $receivedQty),
             'received_qty' => $receivedQty,
             'unit_cost' => Arr::get($itemData, 'unit_cost', 0),
+            'purchase_unit_cost' => Arr::get($itemData, 'purchase_unit_cost', Arr::get($itemData, 'unit_cost', 0)),
             'notes' => Arr::get($itemData, 'notes'),
         ]);
     }

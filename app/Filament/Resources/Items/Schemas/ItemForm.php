@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\Items\Schemas;
 
+use App\Enums\ItemStageCode;
 use App\Models\ItemCategory;
 use App\Models\ItemStage;
 use App\Support\InventoryLabels;
@@ -38,6 +39,7 @@ class ItemForm
                                 TextInput::make('sku')
                                     ->label('Kode Item / SKU')
                                     ->required()
+                                    ->live(debounce: 300)
                                     ->maxLength(60)
                                     ->unique(ignoreRecord: true),
                                 TextInput::make('name')
@@ -59,7 +61,7 @@ class ItemForm
 
                                         $set('item_type', $itemType);
                                         $set('default_stage_id', self::stageIdFromCategory($state));
-                                        $set('requires_production', in_array($itemType, ['semi_finished', 'product'], true));
+                                        $set('requires_production', in_array($itemType, ['premix', 'semi_finished', 'product'], true));
                                     }),
                             ]),
                     ]),
@@ -68,13 +70,13 @@ class ItemForm
                     ->schema([
                         Grid::make([
                             'default' => 1,
-                            'md' => 3,
+                            'md' => 2,
                         ])
                             ->schema([
                                 Select::make('default_unit_id')
                                     ->label('Satuan Dasar')
-                                    ->relationship('defaultUnit', 'name')
-                                    ->getOptionLabelFromRecordUsing(fn ($record): string => $record->code.' - '.$record->name)
+                                    ->relationship('defaultUnit', 'code')
+                                    ->getOptionLabelFromRecordUsing(fn ($record): string => $record->code)
                                     ->required()
                                     ->searchable()
                                     ->preload()
@@ -145,9 +147,19 @@ class ItemForm
 
     protected static function itemTypeFromCategory(mixed $categoryId): string
     {
-        $categoryType = ItemCategory::query()->whereKey($categoryId)->value('category_type');
+        $category = ItemCategory::query()
+            ->whereKey($categoryId)
+            ->first(['slug', 'category_type']);
 
-        return match ($categoryType) {
+        if (! $category) {
+            return 'material';
+        }
+
+        if ($category->slug === 'premix') {
+            return 'premix';
+        }
+
+        return match ($category->category_type) {
             'wip', 'analysis' => 'semi_finished',
             'finished_goods' => 'product',
             'mro' => 'packaging',
@@ -157,14 +169,21 @@ class ItemForm
 
     protected static function stageIdFromCategory(mixed $categoryId): ?int
     {
-        $categoryType = ItemCategory::query()->whereKey($categoryId)->value('category_type');
+        $category = ItemCategory::query()
+            ->whereKey($categoryId)
+            ->first(['slug', 'category_type']);
 
-        $stageCode = match ($categoryType) {
-            'wip' => 'wip',
-            'finished_goods' => 'finished_goods',
-            'mro' => 'mro',
-            'analysis' => 'analysis',
-            default => 'raw_dirty',
+        if (! $category) {
+            return null;
+        }
+
+        $stageCode = match (true) {
+            $category->slug === 'raw-clean' => ItemStageCode::RawClean->value,
+            $category->category_type === 'wip' => ItemStageCode::Wip->value,
+            $category->category_type === 'finished_goods' => ItemStageCode::FinishedGoods->value,
+            $category->category_type === 'mro' => ItemStageCode::Mro->value,
+            $category->category_type === 'analysis' => ItemStageCode::Analysis->value,
+            default => ItemStageCode::RawDirty->value,
         };
 
         return ItemStage::query()->where('code', $stageCode)->value('id');

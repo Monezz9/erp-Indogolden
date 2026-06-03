@@ -31,6 +31,13 @@ return new class extends Migration
             'updated_at' => $now,
         ]);
 
+        $premixCategoryId = $this->upsertAndGetId('item_categories', 'slug', 'premix', [
+            'name' => 'Premix',
+            'category_type' => 'wip',
+            'is_active' => true,
+            'updated_at' => $now,
+        ]);
+
         $gramUnitId = $this->upsertAndGetId('units', 'code', 'GR', [
             'name' => 'Gram',
             'precision' => 2,
@@ -51,11 +58,11 @@ return new class extends Migration
         $finishedGoodsStageId = $this->stageId(ItemStageCode::FinishedGoods->value, 'Finished Goods', 4);
         $mroStageId = $this->stageId(ItemStageCode::Mro->value, 'MRO', 6);
 
-        $this->upsertItem('RM-PENYEDAP', 'Penyedap', $rawCategoryId, $gramUnitId, $rawCleanStageId, 'material');
-        $this->upsertItem('RM-MICIN', 'Micin', $rawCategoryId, $gramUnitId, $rawCleanStageId, 'material');
-        $this->upsertItem('RM-GARAM', 'Garam', $rawCategoryId, $gramUnitId, $rawCleanStageId, 'material');
-        $this->upsertItem('RM-LADA', 'Lada', $rawCategoryId, $gramUnitId, $rawCleanStageId, 'material');
-        $this->upsertItem('RM-GULA', 'Gula', $rawCategoryId, $gramUnitId, $rawCleanStageId, 'material');
+        $this->upsertItem('RM-PENYEDAP', 'Penyedap', $premixCategoryId, $gramUnitId, $rawCleanStageId, 'premix');
+        $this->upsertItem('RM-MICIN', 'Micin', $premixCategoryId, $gramUnitId, $rawCleanStageId, 'premix');
+        $this->upsertItem('RM-GARAM', 'Garam', $premixCategoryId, $gramUnitId, $rawCleanStageId, 'premix');
+        $this->upsertItem('RM-LADA', 'Lada', $premixCategoryId, $gramUnitId, $rawCleanStageId, 'premix');
+        $this->upsertItem('RM-GULA', 'Gula', $premixCategoryId, $gramUnitId, $rawCleanStageId, 'premix');
         $this->upsertItem('MRO-PLASTIK-PREMIX', 'Plastik Premix', $mroCategoryId, $pcsUnitId, $mroStageId, 'packaging');
         $premixId = $this->upsertItem('FG-PREMIX', 'Premix', $finishedGoodsCategoryId, $pcsUnitId, $finishedGoodsStageId, 'product', true);
 

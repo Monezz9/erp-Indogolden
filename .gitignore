@@ -16,6 +16,7 @@
 /public/build
 /public/hot
 /public/storage
+/scripts/windows/cloudflared/cloudflared.exe
 /storage/*.key
 /storage/pail
 /vendor

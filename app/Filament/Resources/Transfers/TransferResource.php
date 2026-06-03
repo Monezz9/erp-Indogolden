@@ -22,6 +22,8 @@ class TransferResource extends Resource
 {
     protected static ?string $model = Transfer::class;
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedTruck;
 
     protected static ?string $navigationLabel = 'Transfer Barang';

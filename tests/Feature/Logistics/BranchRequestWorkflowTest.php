@@ -27,8 +27,7 @@ class BranchRequestWorkflowTest extends TestCase
             'is_active' => true,
         ]);
 
-        $unit = Unit::query()->create([
-            'code' => 'PCS',
+        $unit = Unit::query()->firstOrCreate(['code' => 'PCS'], [
             'name' => 'Pieces',
             'is_base' => true,
             'precision' => 0,
@@ -42,8 +41,7 @@ class BranchRequestWorkflowTest extends TestCase
             'is_active' => true,
         ]);
 
-        $stage = ItemStage::query()->create([
-            'code' => 'raw_dirty',
+        $stage = ItemStage::query()->firstOrCreate(['code' => 'raw_dirty'], [
             'name' => 'Raw Dirty',
             'sequence' => 1,
             'is_active' => true,

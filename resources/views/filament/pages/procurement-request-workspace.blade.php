@@ -19,7 +19,9 @@
                 </label>
             </div>
 
-            @php($selectedItem = $this->selectedItem())
+            @php
+                $selectedItem = $this->selectedItem();
+            @endphp
             <div
                 class="mt-4 overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-800"
                 style="padding-bottom: 18px;"
@@ -80,13 +82,13 @@
                                 <input
                                     type="text"
                                     wire:model.live.debounce.300ms="itemSearch"
-                                    wire:keydown.enter.prevent="openItemSearchResults"
+                                    wire:focus="openItemSearchResults"
                                     placeholder="Ketik kode / nama"
                                     autocomplete="off"
                                     style="min-width: 210px;"
                                     class="block w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-950 shadow-sm focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-red-500"
                                 />
-                                @if($showItemSearchResults && trim((string) $itemSearch) !== '' && ! $itemId)
+                                @if(trim((string) $itemSearch) !== '' && ! $itemId)
                                     <div class="absolute left-3 right-3 top-[46px] z-50 max-h-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-900">
                                         @forelse($this->itemSearchResults() as $result)
                                             <button type="button" wire:click="selectItem({{ $result['id'] }})" class="block w-full px-3 py-2 text-left hover:bg-red-50 dark:hover:bg-gray-800">
@@ -218,59 +220,9 @@
                     {{ count($cart) }} barang siap dibuat menjadi 1 draft PO untuk supplier terpilih.
                 </div>
                 <button type="button" wire:click="createPurchaseOrder" class="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">
-                    Buat Draft PO
+                    SIMPAN
                 </button>
             </div>
-        </div>
-
-        <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <label class="text-sm font-medium text-gray-700 dark:text-gray-200">Status
-                <select wire:model.live="status" class="mt-1 block w-full max-w-xs rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-950 shadow-sm focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white dark:focus:border-red-500">
-                    @foreach($this->statusOptions() as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-            </label>
-        </div>
-
-        <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900">
-            <table class="min-w-[1100px] w-full text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-800">
-                    <tr>
-                        <th class="px-3 py-2 text-left">PO</th>
-                        <th class="px-3 py-2 text-left">Supplier</th>
-                        <th class="px-3 py-2 text-left">Gudang</th>
-                        <th class="px-3 py-2 text-left">Tanggal</th>
-                        <th class="px-3 py-2 text-left">Status</th>
-                        <th class="px-3 py-2 text-right">Item</th>
-                        <th class="px-3 py-2 text-right">Total</th>
-                        <th class="px-3 py-2 text-right">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($this->rows() as $row)
-                        <tr class="border-t border-gray-100 dark:border-gray-800">
-                            <td class="px-3 py-2 font-medium">{{ $row->po_number }}</td>
-                            <td class="px-3 py-2">{{ $row->supplier?->name ?? '-' }}</td>
-                            <td class="px-3 py-2">{{ $row->warehouse?->name ?? '-' }}</td>
-                            <td class="px-3 py-2">{{ $row->order_date?->format('d M Y') ?? '-' }}</td>
-                            <td class="px-3 py-2">{{ \App\Enums\PurchaseOrderStatus::options()[$row->status->value] ?? $row->status->value }}</td>
-                            <td class="px-3 py-2 text-right">{{ $row->items->count() }}</td>
-                            <td class="px-3 py-2 text-right">{{ \App\Support\IndoNumber::rupiah($row->grand_total) }}</td>
-                            <td class="px-3 py-2 text-right">
-                                @if($row->status === \App\Enums\PurchaseOrderStatus::Draft)
-                                    <button type="button" wire:click="submit({{ $row->id }})" class="rounded-lg bg-red-600 px-3 py-1 text-xs font-medium text-white hover:bg-red-700">Ajukan</button>
-                                    <button type="button" wire:click="cancel({{ $row->id }})" class="rounded-lg border border-gray-300 px-3 py-1 text-xs font-medium hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">Batalkan</button>
-                                @else
-                                    <span class="text-xs text-gray-500">-</span>
-                                @endif
-                            </td>
-                        </tr>
-                    @empty
-                        <tr><td colspan="8" class="px-3 py-8 text-center text-gray-500">Belum ada pengadaan barang.</td></tr>
-                    @endforelse
-                </tbody>
-            </table>
         </div>
     </div>
 </x-filament-panels::page>

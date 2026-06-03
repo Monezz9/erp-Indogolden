@@ -28,7 +28,8 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->viteTheme('resources/css/filament/admin/theme.css')
-            ->brandName('Indogolden ERP')
+            ->brandName('INDOGOLDEN')
+            ->favicon('/images/logo-indogolden.png')
             ->sidebarFullyCollapsibleOnDesktop()
             ->login(Login::class)
             ->colors([
@@ -39,12 +40,12 @@ class AdminPanelProvider extends PanelProvider
                 'Analisis Operasional',
                 'Produksi',
                 'Persediaan',
-                'Transfer & Cabang',
                 'Operasional Cabang',
                 'Pengadaan',
                 'Finance',
                 'Data Master',
                 'Manajemen Pengguna',
+                'Pengaturan',
                 'Audit',
             ])
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

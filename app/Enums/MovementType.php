@@ -6,6 +6,7 @@ enum MovementType: string
 {
     case InboundPurchase = 'inbound_purchase';
     case CleaningConversion = 'cleaning_conversion';
+    case WorkInProcess = 'work_in_process';
     case ProductionConsumption = 'production_consumption';
     case ProductionOutput = 'production_output';
     case WarehouseTransfer = 'warehouse_transfer';
@@ -24,6 +25,7 @@ enum MovementType: string
         return [
             self::InboundPurchase->value => 'Barang Masuk Pembelian',
             self::CleaningConversion->value => 'Cleaning / Sorting',
+            self::WorkInProcess->value => 'Work In Process',
             self::ProductionConsumption->value => 'Pemakaian Produksi',
             self::ProductionOutput->value => 'Hasil Produksi',
             self::WarehouseTransfer->value => 'Transfer Gudang',

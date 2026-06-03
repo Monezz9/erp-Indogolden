@@ -70,9 +70,10 @@ class OperationalLauncher extends Page
                 'accent' => 'amber',
                 'subtitle' => 'Alur request, review finance, penerimaan barang, dan data supplier.',
                 'items' => [
-                    $this->item('Permintaan Pengadaan', 'Buat draft PO dan ajukan kebutuhan pembelian barang.', 'heroicon-o-clipboard-document-list', ProcurementRequestWorkspace::getUrl(), 'Buat Permintaan'),
+                    $this->item('Permintaan Pengadaan', 'Input barang pengadaan lalu simpan menjadi PO.', 'heroicon-o-clipboard-document-list', ProcurementRequestWorkspace::getUrl(), 'Input Pengadaan'),
                     $this->item('Review Pengadaan', 'Finance memeriksa, menyetujui, atau menolak pengadaan.', 'heroicon-o-banknotes', ProcurementFinanceReviewWorkspace::getUrl(), 'Review PO'),
-                    $this->item('Barang Datang', 'Terima barang dari PO dan catat inbound purchase.', 'heroicon-o-inbox-arrow-down', GoodsReceiveWorkspace::getUrl(), 'Terima Barang'),
+                    $this->item('Barang Datang', 'Cek PO siap diterima dan konfirmasi barang masuk.', 'heroicon-o-inbox-arrow-down', ProcurementHistory::getUrl(), 'Terima Barang'),
+                    $this->item('LIST PENGADAAN', 'Lihat daftar PO, review barang, dan proses penerimaan.', 'heroicon-o-list-bullet', ProcurementHistory::getUrl(), 'Buka List'),
                     $this->item('Supplier', 'Buka daftar supplier untuk referensi pembelian.', 'heroicon-o-building-office-2', SupplierResource::getUrl(), 'Buka Supplier'),
                 ],
             ],

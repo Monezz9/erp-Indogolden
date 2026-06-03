@@ -54,7 +54,7 @@ class ItemPolicy
      */
     public function delete(User $user, Item $model): bool
     {
-        return $this->isOwner($user);
+        return $this->isOwner($user) && $model->canBeDeleted();
     }
 
     /**

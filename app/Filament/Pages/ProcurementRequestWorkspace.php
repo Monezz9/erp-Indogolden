@@ -2,13 +2,16 @@
 
 namespace App\Filament\Pages;
 
+use App\Enums\GoodsReceiptStatus;
 use App\Enums\PurchaseOrderStatus;
+use App\Models\GoodsReceipt;
 use App\Models\Item;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
+use App\Services\GoodsReceiptService;
 use App\Services\PurchaseOrderService;
 use BackedEnum;
 use Filament\Notifications\Notification;
@@ -196,6 +199,13 @@ class ProcurementRequestWorkspace extends Page
                 'notes' => $line['notes'],
             ], $this->cart), $user);
 
+            $purchaseOrder = PurchaseOrder::query()
+                ->where('po_number', $this->transactionNumber)
+                ->firstOrFail();
+
+            $service->submit($purchaseOrder, $user);
+            $service->financeApprove($purchaseOrder->refresh(), $user);
+
             $this->reset(['notes', 'cart']);
             $this->resetLineInput();
             $this->taxAmount = 0;
@@ -203,7 +213,7 @@ class ProcurementRequestWorkspace extends Page
             $this->orderDate = now()->toDateString();
             $this->expectedDate = $this->orderDate;
 
-            Notification::make()->title('PO draft dibuat')->success()->send();
+            Notification::make()->title('Pengadaan disimpan')->success()->send();
         } catch (Throwable $exception) {
             Notification::make()->title('Gagal membuat PO')->body($exception->getMessage())->danger()->send();
         }
@@ -226,7 +236,7 @@ class ProcurementRequestWorkspace extends Page
         $this->purchaseUnitId = null;
         $this->conversionQty = 1;
         $this->unitCost = 0;
-        $this->showItemSearchResults = false;
+        $this->showItemSearchResults = trim((string) $value) !== '';
     }
 
     public function openItemSearchResults(): void
@@ -287,17 +297,81 @@ class ProcurementRequestWorkspace extends Page
         }
     }
 
+    public function createReceipt(int $purchaseOrderId, GoodsReceiptService $service): void
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return;
+        }
+
+        try {
+            $purchaseOrder = PurchaseOrder::query()
+                ->with('items')
+                ->findOrFail($purchaseOrderId);
+
+            $service->createDraftFromPurchaseOrder($purchaseOrder, $user);
+
+            Notification::make()->title('Draft penerimaan dibuat')->success()->send();
+        } catch (Throwable $exception) {
+            Notification::make()->title('Gagal membuat penerimaan')->body($exception->getMessage())->danger()->send();
+        }
+    }
+
+    public function confirmReceipt(int $receiptId, GoodsReceiptService $service): void
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return;
+        }
+
+        try {
+            $service->confirm(GoodsReceipt::query()->findOrFail($receiptId), $user);
+
+            Notification::make()->title('Penerimaan barang dikonfirmasi')->success()->send();
+        } catch (Throwable $exception) {
+            Notification::make()->title('Gagal konfirmasi penerimaan')->body($exception->getMessage())->danger()->send();
+        }
+    }
+
     /**
      * @return Collection<int, PurchaseOrder>
      */
     public function rows(): Collection
     {
         return PurchaseOrder::query()
-            ->with(['supplier', 'warehouse', 'items.item', 'items.unit'])
+            ->with([
+                'supplier',
+                'warehouse',
+                'items.item',
+                'items.purchaseUnit',
+                'items.unit',
+                'goodsReceipts.items.item',
+                'goodsReceipts.items.purchaseUnit',
+                'goodsReceipts.items.unit',
+            ])
             ->when($this->status !== 'all', fn ($query) => $query->where('status', $this->status))
             ->latest('id')
             ->limit(100)
             ->get();
+    }
+
+    public function canCreateReceipt(PurchaseOrder $purchaseOrder): bool
+    {
+        if (! in_array($purchaseOrder->status, [
+            PurchaseOrderStatus::FinanceApproved,
+            PurchaseOrderStatus::Ordered,
+            PurchaseOrderStatus::PartiallyReceived,
+        ], true)) {
+            return false;
+        }
+
+        if ($purchaseOrder->goodsReceipts->contains(fn (GoodsReceipt $receipt): bool => $receipt->status === GoodsReceiptStatus::Draft)) {
+            return false;
+        }
+
+        return $purchaseOrder->items->sum(fn ($item): float => $item->remainingQty()) > 0;
     }
 
     public function supplierOptions(): array

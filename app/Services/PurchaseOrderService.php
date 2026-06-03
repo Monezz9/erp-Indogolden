@@ -157,9 +157,13 @@ class PurchaseOrderService
      */
     protected function createItem(PurchaseOrder $purchaseOrder, array $itemData): void
     {
-        $qty = (float) Arr::get($itemData, 'ordered_qty', 0);
-        $unitCost = (float) Arr::get($itemData, 'unit_cost', 0);
+        $purchaseQty = (float) Arr::get($itemData, 'purchase_qty', Arr::get($itemData, 'ordered_qty', 0));
+        $conversionQty = (float) Arr::get($itemData, 'conversion_qty', 1);
+        $qty = (float) Arr::get($itemData, 'ordered_qty', $purchaseQty * $conversionQty);
+        $purchaseUnitCost = (float) Arr::get($itemData, 'purchase_unit_cost', Arr::get($itemData, 'unit_cost', 0));
         $taxAmount = (float) Arr::get($itemData, 'tax_amount', 0);
+        $lineTotal = (float) Arr::get($itemData, 'line_total', ($purchaseQty * $purchaseUnitCost) + $taxAmount);
+        $unitCost = $qty > 0 ? (($lineTotal - $taxAmount) / $qty) : 0;
 
         if ($qty <= 0) {
             throw new InvalidArgumentException('Qty PO harus lebih besar dari 0.');
@@ -168,10 +172,14 @@ class PurchaseOrderService
         $purchaseOrder->items()->create([
             'item_id' => Arr::get($itemData, 'item_id'),
             'unit_id' => Arr::get($itemData, 'unit_id'),
+            'purchase_unit_id' => Arr::get($itemData, 'purchase_unit_id', Arr::get($itemData, 'unit_id')),
+            'purchase_qty' => $purchaseQty,
+            'conversion_qty' => $conversionQty,
             'ordered_qty' => $qty,
             'unit_cost' => $unitCost,
+            'purchase_unit_cost' => $purchaseUnitCost,
             'tax_amount' => $taxAmount,
-            'line_total' => ($qty * $unitCost) + $taxAmount,
+            'line_total' => $lineTotal,
             'notes' => Arr::get($itemData, 'notes'),
         ]);
     }
@@ -180,7 +188,7 @@ class PurchaseOrderService
     {
         $purchaseOrder->load('items');
 
-        $subtotal = (float) $purchaseOrder->items->sum(fn ($item): float => (float) $item->ordered_qty * (float) $item->unit_cost);
+        $subtotal = (float) $purchaseOrder->items->sum(fn ($item): float => (float) $item->line_total - (float) $item->tax_amount);
         $taxTotal = (float) $purchaseOrder->items->sum('tax_amount');
         $shipping = (float) $purchaseOrder->shipping_cost;
 

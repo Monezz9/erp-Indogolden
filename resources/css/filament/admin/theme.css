@@ -71,6 +71,31 @@ html:not(.dark) .fi-topbar {
     transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
+.fi-logo {
+    background: linear-gradient(110deg, #9a6a12 0%, #c98f1d 28%, #f4d879 46%, #fff2b8 52%, #d5a232 68%, #9a6a12 100%);
+    background-size: 320% 100%;
+    color: transparent;
+    font-weight: 900;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: ig-gold-shimmer 7s ease-in-out infinite;
+    will-change: background-position;
+}
+
+html.dark .fi-logo {
+    background: linear-gradient(110deg, #b77905 0%, #e2ad2e 28%, #f8dc7b 46%, #fff6c2 52%, #d99a12 68%, #b77905 100%);
+    background-size: 320% 100%;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+@keyframes ig-gold-shimmer {
+    0% { background-position: 100% 50%; }
+    50% { background-position: 0% 50%; }
+    100% { background-position: 100% 50%; }
+}
+
 html.dark .fi-sidebar {
     background: #0f172a;
     border-right: 1px solid #1f2937;

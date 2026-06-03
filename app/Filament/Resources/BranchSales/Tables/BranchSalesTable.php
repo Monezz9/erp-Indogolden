@@ -28,6 +28,7 @@ class BranchSalesTable
                 TextColumn::make('sale_number')->label('No. Nota')->searchable()->sortable(),
                 TextColumn::make('sale_date')->label('Tanggal Nota')->dateTime('d M Y H:i')->sortable(),
                 TextColumn::make('branch.name')->label('Cabang')->sortable(),
+                TextColumn::make('cashier.name')->label('Kasir')->searchable()->sortable()->toggleable(),
                 TextColumn::make('status')
                     ->label('Status')
                     ->badge()
@@ -79,6 +80,12 @@ class BranchSalesTable
                     ->icon('heroicon-o-printer')
                     ->color('gray')
                     ->url(fn (BranchSale $record): string => route('branch-sales.print.thermal', ['branchSale' => $record]))
+                    ->openUrlInNewTab(),
+                Action::make('print_receipt')
+                    ->label('Cetak Nota')
+                    ->icon('heroicon-o-printer')
+                    ->color('primary')
+                    ->url(fn (BranchSale $record): string => route('branch-sales.print.receipt', ['branchSale' => $record]))
                     ->openUrlInNewTab(),
                 Action::make('print_a4')
                     ->label('Cetak A4')

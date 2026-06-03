@@ -1,6 +1,27 @@
 <x-filament-panels::page>
-    <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
+    <div x-data x-on:open-receipt.window="window.open($event.detail.url, '_blank')" class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div class="space-y-5">
+            <div class="overflow-hidden rounded-xl border border-red-100 bg-white shadow-sm dark:border-red-900/40 dark:bg-gray-900">
+                <div class="border-b border-red-100 bg-gradient-to-r from-red-600 via-red-500 to-amber-400 px-5 py-4 text-center text-white dark:border-red-900/40">
+                    <h1 class="text-2xl font-black tracking-normal">KASIR</h1>
+                    <div class="mt-1 text-xs font-semibold uppercase tracking-normal text-red-50">{{ $this->branchName() }}</div>
+                </div>
+                <div class="grid gap-3 px-4 py-3 text-sm md:grid-cols-3">
+                    <div>
+                        <div class="text-xs text-gray-500">No Nota</div>
+                        <div class="font-bold text-gray-950 dark:text-white">{{ $saleNumber }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-500">Kasir</div>
+                        <div class="font-bold text-gray-950 dark:text-white">{{ $cashierName ?: 'Pilih Kasir' }}</div>
+                    </div>
+                    <div>
+                        <div class="text-xs text-gray-500">Total Saat Ini</div>
+                        <div class="font-bold text-red-600">{{ \App\Support\IndoNumber::rupiah($this->total()) }}</div>
+                    </div>
+                </div>
+            </div>
+
             <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
                 <div class="grid gap-3 md:grid-cols-4">
                     <label class="text-sm font-medium text-gray-700 dark:text-gray-200">No Nota
@@ -21,11 +42,42 @@
                     </label>
 
                     <label class="text-sm font-medium text-gray-700 dark:text-gray-200">Kasir
-                        <input type="text" wire:model="cashierName" readonly class="mt-1 block w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 font-semibold text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200" />
+                        <select wire:model.live="cashierId" class="mt-1 block w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-950 shadow-sm focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
+                            <option value="">Pilih Kasir</option>
+                            @foreach($this->cashierOptions() as $id => $name)
+                                <option value="{{ $id }}">{{ $name }}</option>
+                            @endforeach
+                        </select>
                     </label>
 
-                    <label class="text-sm font-medium text-gray-700 dark:text-gray-200">Tanggal
-                        <input type="text" value="{{ now()->format('d M Y H:i') }}" readonly class="mt-1 block w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 font-semibold text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200" />
+                    <label
+                        x-data="{
+                            currentTime: '',
+                            formatCurrentTime() {
+                                const parts = new Intl.DateTimeFormat('id-ID', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: false,
+                                }).formatToParts(new Date()).reduce((values, part) => {
+                                    values[part.type] = part.value;
+
+                                    return values;
+                                }, {});
+
+                                this.currentTime = `${parts.day} ${parts.month} ${parts.year} ${parts.hour}:${parts.minute}:${parts.second}`;
+                            },
+                            init() {
+                                this.formatCurrentTime();
+                                setInterval(() => this.formatCurrentTime(), 1000);
+                            },
+                        }"
+                        class="text-sm font-medium text-gray-700 dark:text-gray-200"
+                    >Tanggal
+                        <input type="text" :value="currentTime" readonly class="mt-1 block w-full rounded-lg border border-gray-300 bg-gray-100 px-3 py-2 font-semibold text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200" />
                     </label>
                 </div>
             </div>
@@ -174,7 +226,7 @@
 
                     <label class="block text-gray-700 dark:text-gray-200">Level Pedas
                         <select wire:model="spiceLevel" class="mt-1 block w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-950 shadow-sm focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
-                            @for($level = 1; $level <= 10; $level++)
+                            @for($level = 0; $level <= 10; $level++)
                                 <option value="{{ $level }}">Level {{ $level }}</option>
                             @endfor
                         </select>
@@ -193,12 +245,9 @@
                 </div>
 
                 <button type="button" wire:click="checkout" class="mt-4 w-full rounded-lg bg-red-600 px-4 py-3 text-sm font-bold text-white hover:bg-red-700">
-                    Bayar & Posting
+                    Bayar
                 </button>
 
-                <button type="button" wire:click="clearCart" class="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
-                    Kosongkan
-                </button>
             </div>
 
             <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
@@ -214,6 +263,11 @@
                             <div class="mt-1 flex items-center justify-between gap-3 text-gray-500">
                                 <span>{{ $sale->branch?->name ?? '-' }}</span>
                                 <span class="font-semibold text-gray-700 dark:text-gray-200">{{ \App\Support\IndoNumber::rupiah($sale->total_amount) }}</span>
+                            </div>
+                            <div class="mt-2 text-right">
+                                <a href="{{ route('branch-sales.print.receipt', ['branchSale' => $sale]) }}" target="_blank" class="text-xs font-semibold text-red-600 hover:text-red-700">
+                                    Cetak Nota
+                                </a>
                             </div>
                         </div>
                     @empty
