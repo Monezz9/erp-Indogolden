@@ -33,7 +33,7 @@ class ListItems extends ListRecords
                 ->modifyQueryUsing(
                     fn (Builder $query): Builder => $query->where('item_type', 'premix'),
                 ),
-            'srm' => $this->stageTab('SRM', ItemStageCode::Wip),
+            'srm' => $this->stageTab('SRM', ItemStageCode::Srm),
             'fg' => $this->stageTab('FG', ItemStageCode::FinishedGoods),
         ];
     }

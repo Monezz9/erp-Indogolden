@@ -410,7 +410,7 @@ class CashierPos extends Page
         }
 
         return Item::query()
-            ->with('defaultUnit:id,code,name')
+            ->with(['category:id,name,slug,category_type', 'defaultUnit:id,code,name'])
             ->find($this->selectedItemId);
     }
 
@@ -421,8 +421,19 @@ class CashierPos extends Page
         }
 
         return Item::query()
-            ->with('defaultUnit:id,code,name')
+            ->with(['category:id,name,slug,category_type', 'defaultUnit:id,code,name'])
             ->find($this->selectedDrinkItemId);
+    }
+
+    public function categoryShortLabel(?Item $item): string
+    {
+        if (! $item?->category) {
+            return '-';
+        }
+
+        return $item->category->category_type === 'finished_goods'
+            ? 'FG'
+            : $item->category->name;
     }
 
     public function subtotal(): float
@@ -527,11 +538,23 @@ class CashierPos extends Page
 
         return Item::query()
             ->where('is_active', true)
-            ->whereHas('stockBalances', function ($query) use ($stageIds): void {
-                $query->where('branch_id', $this->branchId)
-                    ->where('qty_on_hand', '>', 0)
-                    ->whereIn('stage_id', $stageIds);
-            })
+            ->when(
+                $includeDrinks,
+                fn ($query) => $query->whereHas('stockBalances', function ($query) use ($stageIds): void {
+                    $query->where('branch_id', $this->branchId)
+                        ->where('qty_on_hand', '>', 0)
+                        ->whereIn('stage_id', $stageIds);
+                }),
+            )
+            ->when(
+                ! $includeDrinks,
+                fn ($query) => $query->whereHas(
+                    'category',
+                    fn ($category) => $category
+                        ->where('slug', 'finished-goods')
+                        ->orWhere('category_type', 'finished_goods'),
+                ),
+            )
             ->where(function ($query) use ($includeDrinks): void {
                 $drinkMatcher = function ($q): void {
                     $q->where('name', 'like', '%minuman%')
@@ -566,9 +589,10 @@ class CashierPos extends Page
                     });
             })
             ->orderBy('name')
-            ->get(['id', 'sku', 'name'])
+            ->with('category:id,name,category_type')
+            ->get(['id', 'sku', 'name', 'item_category_id'])
             ->mapWithKeys(fn (Item $item): array => [
-                $item->id => trim(($item->sku ? $item->sku.' - ' : '').$item->name),
+                $item->id => $item->name,
             ])
             ->all();
     }

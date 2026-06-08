@@ -10,6 +10,7 @@ class InventoryLabels
             'raw_dirty' => 'Stok Mentah Kotor',
             'raw_clean' => 'Stok Mentah Bersih',
             'wip' => 'WIP - Proses Produksi',
+            'srm' => 'SRM',
             'finished_goods' => 'FG - Barang Jadi',
             'branch_stock' => 'Stok Cabang',
             'mro' => 'Barang Operasional',

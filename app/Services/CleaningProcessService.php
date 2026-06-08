@@ -176,8 +176,7 @@ class CleaningProcessService
         $existing = Item::query()
             ->where('default_stage_id', $rawCleanStageId)
             ->where('item_category_id', $categoryId)
-            ->whereIn('name', [$inputItem->name, $inputItem->name.' Bersih'])
-            ->orderByRaw('CASE WHEN name = ? THEN 0 ELSE 1 END', [$inputItem->name])
+            ->where('name', $inputItem->name)
             ->first();
 
         if ($existing) {
@@ -189,7 +188,7 @@ class CleaningProcessService
 
         return Item::query()->create([
             'sku' => $sku,
-            'name' => $inputItem->name.' Bersih',
+            'name' => $inputItem->name,
             'item_category_id' => $categoryId,
             'default_unit_id' => $inputItem->default_unit_id,
             'default_stage_id' => $rawCleanStageId,

@@ -7,6 +7,7 @@ enum ItemStageCode: string
     case RawDirty = 'raw_dirty';
     case RawClean = 'raw_clean';
     case Wip = 'wip';
+    case Srm = 'srm';
     case FinishedGoods = 'finished_goods';
     case BranchStock = 'branch_stock';
     case Mro = 'mro';
@@ -21,6 +22,7 @@ enum ItemStageCode: string
             self::RawDirty->value => 'Raw Dirty',
             self::RawClean->value => 'Raw Clean',
             self::Wip->value => 'WIP',
+            self::Srm->value => 'SRM',
             self::FinishedGoods->value => 'Finished Goods',
             self::BranchStock->value => 'Branch Stock',
             self::Mro->value => 'MRO',

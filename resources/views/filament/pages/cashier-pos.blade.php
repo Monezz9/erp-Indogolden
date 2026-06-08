@@ -86,11 +86,11 @@
             @php($selectedDrinkItem = $this->selectedDrinkItem())
 
             <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-900">
-                <h2 class="text-base font-bold text-gray-950 dark:text-white">Barang Prasmanan</h2>
+                <h2 class="text-base font-bold text-gray-950 dark:text-white">Pesanan</h2>
                 <div class="grid gap-3 lg:grid-cols-[minmax(0,1fr)_120px_160px_auto]">
-                    <label class="text-sm font-medium text-gray-700 dark:text-gray-200">Barang
+                    <label class="text-sm font-medium text-gray-700 dark:text-gray-200">Pesanan
                         <select wire:model.live="selectedItemId" class="mt-1 block w-full rounded-lg border border-gray-300 bg-gray-50 px-3 py-2 text-gray-950 shadow-sm focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-500/20 dark:border-gray-700 dark:bg-gray-800 dark:text-white">
-                            <option value="">Pilih Barang</option>
+                            <option value="">Pilih Pesanan</option>
                             @foreach($this->itemOptions() as $id => $name)
                                 <option value="{{ $id }}">{{ $name }}</option>
                             @endforeach
@@ -113,6 +113,8 @@
                 </div>
 
                 <div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                    Kategori: <span class="font-semibold text-gray-700 dark:text-gray-200">{{ $this->categoryShortLabel($selectedItem) }}</span>
+                    <span class="mx-2 text-gray-300">|</span>
                     Satuan: <span class="font-semibold text-gray-700 dark:text-gray-200">{{ $selectedItem?->defaultUnit?->code ?? '-' }}</span>
                 </div>
             </div>

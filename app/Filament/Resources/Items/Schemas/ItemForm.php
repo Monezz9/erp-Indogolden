@@ -179,6 +179,7 @@ class ItemForm
 
         $stageCode = match (true) {
             $category->slug === 'raw-clean' => ItemStageCode::RawClean->value,
+            $category->slug === 'srm' => ItemStageCode::Srm->value,
             $category->category_type === 'wip' => ItemStageCode::Wip->value,
             $category->category_type === 'finished_goods' => ItemStageCode::FinishedGoods->value,
             $category->category_type === 'mro' => ItemStageCode::Mro->value,

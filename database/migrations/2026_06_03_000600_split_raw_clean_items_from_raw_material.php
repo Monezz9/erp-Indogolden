@@ -129,7 +129,7 @@ return new class extends Migration
         DB::table('items')->updateOrInsert(
             ['sku' => $sku],
             [
-                'name' => $inputName.' Bersih',
+                'name' => $inputName,
                 'item_category_id' => $categoryId,
                 'default_unit_id' => $unitId,
                 'default_stage_id' => $stageId,

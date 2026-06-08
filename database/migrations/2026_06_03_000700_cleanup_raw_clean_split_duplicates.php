@@ -48,8 +48,7 @@ return new class extends Migration
                     ->where('id', '!=', $duplicate->id)
                     ->where('default_stage_id', $rawCleanStageId)
                     ->where('item_category_id', $rawCleanCategoryId)
-                    ->whereIn('name', [$baseName, $baseName.' Bersih'])
-                    ->orderByRaw('CASE WHEN name = ? THEN 0 ELSE 1 END', [$baseName])
+                    ->where('name', $baseName)
                     ->first(['id']);
 
                 if (! $target) {
