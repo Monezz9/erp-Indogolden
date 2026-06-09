@@ -8,6 +8,7 @@ use App\Models\StockBalance;
 use App\Models\User;
 use App\Support\IndoNumber;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\Filter;
 use Filament\Tables\Table;
 use Filament\Widgets\TableWidget;
 use Illuminate\Database\Eloquent\Builder;
@@ -15,9 +16,11 @@ use Illuminate\Support\Facades\Auth;
 
 class LowStockItemsTable extends TableWidget
 {
-    protected static ?string $heading = 'Stok Menipis';
+    protected static ?string $heading = 'Stok yang Menipis';
 
     protected static bool $isLazy = true;
+
+    protected int | string | array $columnSpan = 'full';
 
     public static function canView(): bool
     {
@@ -51,13 +54,18 @@ class LowStockItemsTable extends TableWidget
                 ->orderBy('qty_on_hand_total'))
             ->columns([
                 TextColumn::make('sku')->label('SKU')->searchable(),
-                TextColumn::make('name')->searchable(),
+                TextColumn::make('name')->label('Barang')->searchable(),
                 TextColumn::make('qty_on_hand_total')
                     ->label('Stok Tersedia')
                     ->formatStateUsing(fn (mixed $state): string => IndoNumber::decimal($state)),
                 TextColumn::make('minimum_stock')
                     ->label('Minimum')
                     ->formatStateUsing(fn (mixed $state): string => IndoNumber::decimal($state)),
+            ])
+            ->filters([
+                Filter::make('empty_stock')
+                    ->label('Stok kosong')
+                    ->query(fn (Builder $query): Builder => $query->whereRaw('COALESCE(item_stocks.qty_on_hand_total, 0) <= 0')),
             ]);
     }
 }

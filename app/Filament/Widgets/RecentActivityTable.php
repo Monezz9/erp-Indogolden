@@ -13,9 +13,11 @@ use Illuminate\Support\Facades\Auth;
 
 class RecentActivityTable extends TableWidget
 {
-    protected static ?string $heading = 'Recent Activity';
+    protected static ?string $heading = 'Jejak Aktivitas Terbaru';
 
     protected static bool $isLazy = false;
+
+    protected int | string | array $columnSpan = 'full';
 
     public static function canView(): bool
     {
@@ -32,11 +34,11 @@ class RecentActivityTable extends TableWidget
         return $table
             ->query(fn (): Builder => ActivityLog::query()->latest('logged_at')->limit(10))
             ->columns([
-                TextColumn::make('logged_at')->dateTime('d M H:i'),
+                TextColumn::make('logged_at')->label('Waktu')->dateTime('d M H:i'),
                 TextColumn::make('user.name')->label('User')->toggleable(),
                 TextColumn::make('module')->badge(),
                 TextColumn::make('action')->badge(),
-                TextColumn::make('description')->limit(40),
+                TextColumn::make('description')->label('Keterangan')->limit(48),
             ]);
     }
 }

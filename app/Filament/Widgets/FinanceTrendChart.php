@@ -13,7 +13,15 @@ use Filament\Widgets\ChartWidget;
 
 class FinanceTrendChart extends ChartWidget
 {
-    protected ?string $heading = 'Pemasukan vs Pengeluaran (7 Hari)';
+    protected ?string $heading = 'Arus Uang Mingguan';
+
+    protected ?string $description = 'Perbandingan uang masuk dan keluar selama 7 hari terakhir.';
+
+    protected ?string $maxHeight = '300px';
+
+    protected int | string | array $columnSpan = [
+        'lg' => 3,
+    ];
 
     protected static bool $isLazy = true;
 
@@ -87,5 +95,29 @@ class FinanceTrendChart extends ChartWidget
     protected function getType(): string
     {
         return 'line';
+    }
+
+    protected function getOptions(): array
+    {
+        return [
+            'plugins' => [
+                'legend' => [
+                    'position' => 'bottom',
+                ],
+            ],
+            'scales' => [
+                'y' => [
+                    'beginAtZero' => true,
+                    'grid' => [
+                        'color' => 'rgba(148, 163, 184, 0.18)',
+                    ],
+                ],
+                'x' => [
+                    'grid' => [
+                        'display' => false,
+                    ],
+                ],
+            ],
+        ];
     }
 }

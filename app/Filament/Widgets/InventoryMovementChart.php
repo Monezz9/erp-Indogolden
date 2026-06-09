@@ -13,7 +13,16 @@ use Filament\Widgets\ChartWidget;
 
 class InventoryMovementChart extends ChartWidget
 {
-    protected ?string $heading = 'Barang Masuk vs Keluar (7 Hari)';
+    protected ?string $heading = 'Pergerakan Barang Mingguan';
+
+    protected ?string $description = 'Melihat ritme barang masuk dan keluar dari gudang.';
+
+    protected ?string $maxHeight = '380px';
+
+    protected int | string | array $columnSpan = [
+        'md' => 4,
+        'lg' => 4,
+    ];
 
     protected static bool $isLazy = true;
 
@@ -70,22 +79,60 @@ class InventoryMovementChart extends ChartWidget
         return [
             'datasets' => [
                 [
-                    'label' => 'IN',
+                    'label' => 'Masuk',
                     'data' => $in,
-                    'backgroundColor' => '#f03d3d',
+                    'backgroundColor' => '#d99018',
+                    'borderRadius' => 8,
                 ],
                 [
-                    'label' => 'OUT',
+                    'label' => 'Keluar',
                     'data' => $out,
-                    'backgroundColor' => '#1f2937',
+                    'backgroundColor' => '#334155',
+                    'borderRadius' => 8,
                 ],
             ],
             'labels' => $labels,
         ];
     }
 
+    protected function getFilters(): ?array
+    {
+        return [
+            '7' => '7 Hari Terakhir',
+        ];
+    }
+
     protected function getType(): string
     {
         return 'bar';
+    }
+
+    protected function getOptions(): array
+    {
+        return [
+            'plugins' => [
+                'legend' => [
+                    'position' => 'bottom',
+                    'labels' => [
+                        'boxWidth' => 10,
+                        'boxHeight' => 10,
+                        'useBorderRadius' => true,
+                    ],
+                ],
+            ],
+            'scales' => [
+                'y' => [
+                    'beginAtZero' => true,
+                    'grid' => [
+                        'color' => 'rgba(148, 163, 184, 0.18)',
+                    ],
+                ],
+                'x' => [
+                    'grid' => [
+                        'display' => false,
+                    ],
+                ],
+            ],
+        ];
     }
 }

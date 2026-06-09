@@ -3,14 +3,15 @@
 namespace App\Filament\Pages;
 
 use App\Enums\UserRole;
+use App\Filament\Widgets\DashboardInsightWidget;
 use App\Filament\Widgets\FinanceTrendChart;
 use App\Filament\Widgets\InventoryMovementChart;
 use App\Filament\Widgets\KpiOverview;
 use App\Filament\Widgets\LowStockItemsTable;
 use App\Filament\Widgets\PendingApprovalsOverview;
-use App\Filament\Widgets\RecentActivityTable;
 use App\Models\User;
 use Filament\Pages\Dashboard as BaseDashboard;
+use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 
 class Dashboard extends BaseDashboard
@@ -19,7 +20,28 @@ class Dashboard extends BaseDashboard
 
     public function getTitle(): string
     {
-        return 'Dasbor';
+        return 'Ringkasan Operasional';
+    }
+
+    public function getHeader(): ?View
+    {
+        return view('filament.pages.partials.dashboard-header');
+    }
+
+    public function getColumns(): int | array
+    {
+        return [
+            'md' => 6,
+            'lg' => 6,
+        ];
+    }
+
+    /**
+     * @return array<string>
+     */
+    public function getPageClasses(): array
+    {
+        return ['fi-page-dashboard'];
     }
 
     public function getWidgets(): array
@@ -41,6 +63,7 @@ class Dashboard extends BaseDashboard
             return [
                 KpiOverview::class,
                 InventoryMovementChart::class,
+                DashboardInsightWidget::class,
                 LowStockItemsTable::class,
             ];
         }
@@ -48,6 +71,7 @@ class Dashboard extends BaseDashboard
         $widgets = [
             KpiOverview::class,
             InventoryMovementChart::class,
+            DashboardInsightWidget::class,
             LowStockItemsTable::class,
         ];
 
@@ -55,8 +79,6 @@ class Dashboard extends BaseDashboard
             return [
                 PendingApprovalsOverview::class,
                 ...$widgets,
-                FinanceTrendChart::class,
-                RecentActivityTable::class,
             ];
         }
 
