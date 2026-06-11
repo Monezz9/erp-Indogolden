@@ -7,12 +7,14 @@ use App\Filament\Resources\Users\Pages\EditUser;
 use App\Filament\Resources\Users\Pages\ListUsers;
 use App\Filament\Resources\Users\Schemas\UserForm;
 use App\Filament\Resources\Users\Tables\UsersTable;
+use App\Enums\UserRole;
 use App\Models\User;
 use BackedEnum;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class UserResource extends Resource
 {
@@ -22,7 +24,9 @@ class UserResource extends Resource
 
     protected static ?string $navigationLabel = 'Pengguna';
 
-    protected static \UnitEnum|string|null $navigationGroup = 'Manajemen Pengguna';
+    protected static \UnitEnum|string|null $navigationGroup = 'Pengaturan';
+
+    protected static ?int $navigationSort = 10;
 
     protected static ?string $modelLabel = 'Pengguna';
 
@@ -36,6 +40,16 @@ class UserResource extends Resource
     public static function table(Table $table): Table
     {
         return UsersTable::configure($table);
+    }
+
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+
+        return $user instanceof User && $user->hasAnyRole([
+            UserRole::Admin->value,
+            UserRole::Owner->value,
+        ]);
     }
 
     public static function getRelations(): array

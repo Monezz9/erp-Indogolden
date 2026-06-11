@@ -121,10 +121,10 @@ class WorkInProcessWorkspace extends Page
         return Item::query()
             ->where('is_active', true)
             ->where('item_type', '!=', 'premix')
-            ->whereHas('defaultStage', fn ($stage) => $stage->where('code', ItemStageCode::Wip->value))
+            ->whereHas('defaultStage', fn ($stage) => $stage->whereIn('code', $this->inputStageCodes()))
             ->whereHas('stockBalances', function ($query): void {
                 $query->where('qty_on_hand', '>', 0)
-                    ->whereHas('stage', fn ($stage) => $stage->where('code', ItemStageCode::Wip->value))
+                    ->whereHas('stage', fn ($stage) => $stage->whereIn('code', $this->inputStageCodes()))
                     ->when($this->warehouseId, fn ($q) => $q->where('warehouse_id', $this->warehouseId));
             })
             ->with('defaultUnit:id,code')
@@ -173,7 +173,7 @@ class WorkInProcessWorkspace extends Page
         return (float) StockBalance::query()
             ->where('item_id', $this->inputItemId)
             ->where('warehouse_id', $this->warehouseId)
-            ->whereHas('stage', fn ($query) => $query->where('code', ItemStageCode::Wip->value))
+            ->whereHas('stage', fn ($query) => $query->whereIn('code', $this->inputStageCodes()))
             ->sum('qty_on_hand');
     }
 
@@ -211,5 +211,17 @@ class WorkInProcessWorkspace extends Page
             })
             ->orderByRaw("CASE WHEN code = 'WH-CENTRAL' THEN 0 ELSE 1 END")
             ->value('id');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function inputStageCodes(): array
+    {
+        return [
+            ItemStageCode::Srm->value,
+            ItemStageCode::RawClean->value,
+            ItemStageCode::Wip->value,
+        ];
     }
 }

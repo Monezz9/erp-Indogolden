@@ -28,6 +28,8 @@ class FinanceExpenseResource extends Resource
 
     protected static \UnitEnum|string|null $navigationGroup = 'Finance';
 
+    protected static bool $shouldRegisterNavigation = false;
+
     protected static ?string $modelLabel = 'Pengeluaran';
 
     protected static ?string $pluralModelLabel = 'Pengeluaran';

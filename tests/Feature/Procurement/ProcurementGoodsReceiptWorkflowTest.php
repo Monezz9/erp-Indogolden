@@ -263,6 +263,150 @@ class ProcurementGoodsReceiptWorkflowTest extends TestCase
             ->assertSet('conversionQty', 1000.0);
     }
 
+    public function test_procurement_workspace_search_finds_raw_material_by_rm_alias(): void
+    {
+        $this->prepareDatabase();
+
+        $user = $this->createUserWithRole('gudang-rm-search@erp.test', 'gudang');
+        $this->actingAs($user);
+
+        $gram = Unit::query()->updateOrCreate(['code' => 'GR'], [
+            'name' => 'Gram',
+            'is_base' => true,
+            'precision' => 4,
+            'is_active' => true,
+        ]);
+        $category = ItemCategory::query()->updateOrCreate(['slug' => 'raw-material-rm-search'], [
+            'name' => 'Raw Material',
+            'category_type' => 'raw_material',
+            'is_active' => true,
+        ]);
+        $stage = ItemStage::query()->updateOrCreate(['code' => 'raw_dirty'], [
+            'name' => 'Raw Dirty',
+            'sequence' => 1,
+            'is_active' => true,
+        ]);
+        $item = Item::query()->create([
+            'sku' => 'CA0002',
+            'name' => 'Cabe Besar',
+            'item_category_id' => $category->id,
+            'default_unit_id' => $gram->id,
+            'default_stage_id' => $stage->id,
+            'item_type' => 'material',
+            'requires_production' => false,
+            'is_perishable' => true,
+            'minimum_stock' => 0,
+            'purchase_price' => 0,
+            'latest_weighted_avg_cost' => 0,
+            'is_active' => true,
+        ]);
+
+        $component = Livewire::test(ProcurementRequestWorkspace::class)
+            ->set('itemSearch', 'RM')
+            ->call('openItemSearchResults');
+
+        $this->assertContains($item->id, collect($component->instance()->itemSearchResults())->pluck('id')->all());
+    }
+
+    public function test_procurement_workspace_only_allows_rm_and_srm_items_in_draft(): void
+    {
+        $this->prepareDatabase();
+
+        $user = $this->createUserWithRole('gudang-category-guard@erp.test', 'gudang');
+        $this->actingAs($user);
+
+        $unit = Unit::query()->updateOrCreate(['code' => 'PCS'], [
+            'name' => 'Pieces',
+            'is_base' => true,
+            'precision' => 0,
+            'is_active' => true,
+        ]);
+
+        $rm = $this->createProcurementItem('RM-ALLOW-TEST', 'RM Allow Test', 'raw-material', 'Raw Material', 'raw_material', 'raw_dirty', $unit);
+        $srm = $this->createProcurementItem('SRM-ALLOW-TEST', 'SRM Allow Test', 'srm', 'SRM', 'wip', 'srm', $unit);
+        $fg = $this->createProcurementItem('FG-DENY-TEST', 'FG Deny Test', 'finished-goods', 'Finished Goods', 'finished_goods', 'finished_goods', $unit);
+        $premix = $this->createProcurementItem('PMX-DENY-TEST', 'Premix Deny Test', 'premix', 'Premix', 'wip', 'raw_clean', $unit, 'premix');
+        $rc = $this->createProcurementItem('RC-DENY-TEST', 'RC Deny Test', 'raw-clean', 'Raw Clean', 'raw_material', 'raw_clean', $unit);
+        $wip = $this->createProcurementItem('WIP-DENY-TEST', 'WIP Deny Test', 'wip', 'WIP', 'wip', 'wip', $unit);
+
+        foreach ([$rm, $srm] as $item) {
+            Livewire::test(ProcurementRequestWorkspace::class)
+                ->set('itemId', $item->id)
+                ->set('unitId', $unit->id)
+                ->set('purchaseUnitId', $unit->id)
+                ->set('purchaseQty', 1)
+                ->set('conversionQty', 1)
+                ->set('unitCost', 1000)
+                ->call('addItemToCart')
+                ->assertSet('cart.0.item_id', $item->id);
+        }
+
+        foreach ([$fg, $premix, $rc, $wip] as $item) {
+            $component = Livewire::test(ProcurementRequestWorkspace::class)
+                ->set('itemId', $item->id)
+                ->set('unitId', $unit->id)
+                ->set('purchaseUnitId', $unit->id)
+                ->set('purchaseQty', 1)
+                ->set('conversionQty', 1)
+                ->set('unitCost', 1000)
+                ->call('addItemToCart');
+
+            $this->assertSame([], $component->instance()->cart);
+        }
+    }
+
+    public function test_procurement_workspace_blocks_save_when_cart_contains_invalid_category(): void
+    {
+        $this->prepareDatabase();
+
+        $user = $this->createUserWithRole('gudang-invalid-save@erp.test', 'gudang');
+        $this->actingAs($user);
+
+        $unit = Unit::query()->updateOrCreate(['code' => 'PCS'], [
+            'name' => 'Pieces',
+            'is_base' => true,
+            'precision' => 0,
+            'is_active' => true,
+        ]);
+        $supplier = Supplier::query()->create([
+            'code' => 'SUP-INVALID-SAVE',
+            'name' => 'Supplier Invalid Save',
+            'is_active' => true,
+        ]);
+        Warehouse::query()->create([
+            'code' => 'WH-CENTRAL',
+            'name' => 'Gudang Pusat',
+            'location_type' => 'central',
+            'is_active' => true,
+        ]);
+        $fg = $this->createProcurementItem('FG-CART-DENY', 'FG Cart Deny', 'finished-goods', 'Finished Goods', 'finished_goods', 'finished_goods', $unit);
+
+        Livewire::test(ProcurementRequestWorkspace::class)
+            ->set('supplierId', $supplier->id)
+            ->set('cart', [[
+                'item_id' => $fg->id,
+                'item_label' => 'FG-CART-DENY - FG Cart Deny',
+                'item_name' => 'FG Cart Deny',
+                'item_kind' => 'Finished Goods',
+                'unit_id' => $unit->id,
+                'unit_label' => 'PCS - Pieces',
+                'purchase_unit_id' => $unit->id,
+                'purchase_unit_label' => 'PCS - Pieces',
+                'purchase_qty' => 1,
+                'conversion_qty' => 1,
+                'ordered_qty' => 1,
+                'line_total' => 1000,
+                'purchase_unit_cost' => 1000,
+                'unit_cost' => 1000,
+                'notes' => null,
+            ]])
+            ->call('createPurchaseOrder');
+
+        $this->assertDatabaseMissing('purchase_orders', [
+            'supplier_id' => $supplier->id,
+        ]);
+    }
+
     protected function createUserWithRole(string $email, string $role): User
     {
         Role::findOrCreate($role, 'web');
@@ -275,6 +419,43 @@ class ProcurementGoodsReceiptWorkflowTest extends TestCase
         $user->assignRole($role);
 
         return $user;
+    }
+
+    protected function createProcurementItem(
+        string $sku,
+        string $name,
+        string $categorySlug,
+        string $categoryName,
+        string $categoryType,
+        string $stageCode,
+        Unit $unit,
+        string $itemType = 'material',
+    ): Item {
+        $category = ItemCategory::query()->updateOrCreate(['slug' => $categorySlug], [
+            'name' => $categoryName,
+            'category_type' => $categoryType,
+            'is_active' => true,
+        ]);
+        $stage = ItemStage::query()->updateOrCreate(['code' => $stageCode], [
+            'name' => str($stageCode)->replace('_', ' ')->title()->toString(),
+            'sequence' => 1,
+            'is_active' => true,
+        ]);
+
+        return Item::query()->create([
+            'sku' => $sku,
+            'name' => $name,
+            'item_category_id' => $category->id,
+            'default_unit_id' => $unit->id,
+            'default_stage_id' => $stage->id,
+            'item_type' => $itemType,
+            'requires_production' => false,
+            'is_perishable' => false,
+            'minimum_stock' => 0,
+            'purchase_price' => 0,
+            'latest_weighted_avg_cost' => 0,
+            'is_active' => true,
+        ]);
     }
 
     protected function prepareDatabase(): void

@@ -16,7 +16,7 @@ class FinanceIncomePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $this->hasRole($user, [UserRole::Owner, UserRole::Finance, UserRole::HeadLogistics]);
+        return $this->isOwner($user) || $user->hasRole(UserRole::Finance->value);
     }
 
     /**
@@ -28,11 +28,7 @@ class FinanceIncomePolicy
             return true;
         }
 
-        if ($user->hasRole(UserRole::Finance->value)) {
-            return true;
-        }
-
-        return $user->hasRole(UserRole::HeadLogistics->value);
+        return $user->hasRole(UserRole::Finance->value);
     }
 
     /**
@@ -40,7 +36,7 @@ class FinanceIncomePolicy
      */
     public function create(User $user): bool
     {
-        return $this->hasRole($user, [UserRole::Owner, UserRole::Finance]);
+        return $this->isOwner($user) || $user->hasRole(UserRole::Finance->value);
     }
 
     /**

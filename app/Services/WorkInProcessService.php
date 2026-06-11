@@ -41,23 +41,39 @@ class WorkInProcessService
         }
 
         return DB::transaction(function () use ($data, $actor, $inputQty, $standardConversion, $actualOutputQty, $overheadCost): WorkInProcess {
-            $wipStageId = $this->stageId(ItemStageCode::Wip);
+            $inputStageIds = $this->stageIds([
+                ItemStageCode::Srm,
+                ItemStageCode::RawClean,
+                ItemStageCode::Wip,
+            ]);
             $finishedGoodsStageId = $this->stageId(ItemStageCode::FinishedGoods);
             $inputItem = Item::query()->with('defaultUnit')->findOrFail((int) $data['input_item_id']);
             $outputItem = Item::query()->with('defaultUnit')->findOrFail((int) $data['output_item_id']);
             $warehouseId = (int) $data['warehouse_id'];
+            $preferredInputStageId = in_array((int) $inputItem->default_stage_id, $inputStageIds, true)
+                ? (int) $inputItem->default_stage_id
+                : (int) ($inputStageIds[0] ?? 0);
 
             $balance = StockBalance::query()
                 ->where('item_id', $inputItem->id)
-                ->where('stage_id', $wipStageId)
+                ->whereIn('stage_id', $inputStageIds)
                 ->where('warehouse_id', $warehouseId)
+                ->where('qty_on_hand', '>=', $inputQty)
+                ->when($preferredInputStageId > 0, fn ($query) => $query->orderByRaw('CASE WHEN stage_id = ? THEN 0 ELSE 1 END', [$preferredInputStageId]))
+                ->orderByDesc('qty_on_hand')
                 ->lockForUpdate()
                 ->first();
 
-            if (! $balance || (float) $balance->qty_on_hand < $inputQty) {
+            if (! $balance) {
+                $availableQty = StockBalance::query()
+                    ->where('item_id', $inputItem->id)
+                    ->whereIn('stage_id', $inputStageIds)
+                    ->where('warehouse_id', $warehouseId)
+                    ->sum('qty_on_hand');
+
                 throw new InvalidArgumentException(sprintf(
                     'Stok SRM tidak cukup. Tersedia %s, diminta %s.',
-                    $balance ? (float) $balance->qty_on_hand : 0,
+                    (float) $availableQty,
                     $inputQty,
                 ));
             }
@@ -111,7 +127,7 @@ class WorkInProcessService
                 'direction' => 'out',
                 'qty' => $inputQty,
                 'unit_cost' => $inputUnitCost,
-                'from_stage_id' => $wipStageId,
+                'from_stage_id' => (int) $balance->stage_id,
                 'from_warehouse_id' => $warehouseId,
             ]]);
 
@@ -156,6 +172,19 @@ class WorkInProcessService
     protected function stageId(ItemStageCode $code): int
     {
         return (int) ItemStage::query()->where('code', $code->value)->value('id');
+    }
+
+    /**
+     * @param  array<int, ItemStageCode>  $codes
+     * @return array<int, int>
+     */
+    protected function stageIds(array $codes): array
+    {
+        return ItemStage::query()
+            ->whereIn('code', array_map(fn (ItemStageCode $code): string => $code->value, $codes))
+            ->pluck('id')
+            ->map(fn (mixed $id): int => (int) $id)
+            ->all();
     }
 
     protected function makeNumber(): string

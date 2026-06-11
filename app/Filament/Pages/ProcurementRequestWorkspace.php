@@ -17,7 +17,9 @@ use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 use Throwable;
 
 class ProcurementRequestWorkspace extends Page
@@ -100,6 +102,9 @@ class ProcurementRequestWorkspace extends Page
 
         try {
             $item = Item::query()->with('category')->findOrFail($this->itemId);
+
+            $this->ensureProcurementItemAllowed($item);
+
             $unitId = $this->unitId ?: $item->default_unit_id;
             $purchaseUnitId = $this->purchaseUnitId ?: $unitId;
 
@@ -110,7 +115,7 @@ class ProcurementRequestWorkspace extends Page
             }
 
             if ($this->purchaseQty <= 0 || $this->conversionQty <= 0 || $this->lineTotal() <= 0) {
-                Notification::make()->title('Qty, isi/satuan, dan total harga harus lebih besar dari 0')->warning()->send();
+                Notification::make()->title('Qty beli, isi per satuan, satuan, dan total harga harus lebih besar dari 0')->warning()->send();
 
                 return;
             }
@@ -138,6 +143,12 @@ class ProcurementRequestWorkspace extends Page
             $this->resetLineInput();
 
             Notification::make()->title('Barang ditambahkan ke draft PO')->success()->send();
+        } catch (ValidationException $exception) {
+            Notification::make()
+                ->title('Barang tidak dapat ditambahkan')
+                ->body(collect($exception->errors())->flatten()->implode(' '))
+                ->danger()
+                ->send();
         } catch (Throwable $exception) {
             Notification::make()->title('Gagal menambahkan barang')->body($exception->getMessage())->danger()->send();
         }
@@ -148,6 +159,26 @@ class ProcurementRequestWorkspace extends Page
         unset($this->cart[$index]);
 
         $this->cart = array_values($this->cart);
+    }
+
+    public function editCartItem(int $index): void
+    {
+        if (! isset($this->cart[$index])) {
+            return;
+        }
+
+        $line = $this->cart[$index];
+
+        $this->itemId = $line['item_id'];
+        $this->itemSearch = $line['item_label'];
+        $this->itemKind = $line['item_kind'];
+        $this->unitId = $line['unit_id'];
+        $this->purchaseUnitId = $line['purchase_unit_id'];
+        $this->purchaseQty = (float) $line['purchase_qty'];
+        $this->conversionQty = (float) $line['conversion_qty'];
+        $this->unitCost = (float) $line['line_total'];
+
+        $this->removeCartItem($index);
     }
 
     public function clearCart(): void
@@ -171,6 +202,18 @@ class ProcurementRequestWorkspace extends Page
 
         if ($this->cart === []) {
             Notification::make()->title('Tambahkan minimal 1 barang ke draft PO')->warning()->send();
+
+            return;
+        }
+
+        try {
+            $this->validateCartItems();
+        } catch (ValidationException $exception) {
+            Notification::make()
+                ->title('Draft PO belum valid')
+                ->body(collect($exception->errors())->flatten()->implode(' '))
+                ->danger()
+                ->send();
 
             return;
         }
@@ -223,6 +266,7 @@ class ProcurementRequestWorkspace extends Page
     {
         $item = Item::query()
             ->with(['category:id,name', 'defaultUnit:id,code'])
+            ->where(fn (Builder $query): Builder => $this->applyAllowedProcurementItemQuery($query))
             ->find($itemId);
 
         $this->fillSelectedItem($item);
@@ -249,6 +293,7 @@ class ProcurementRequestWorkspace extends Page
         $item = Item::query()
             ->with(['category:id,name', 'defaultUnit:id,code'])
             ->where('is_active', true)
+            ->where(fn (Builder $query): Builder => $this->applyAllowedProcurementItemQuery($query))
             ->find($itemId);
 
         $this->fillSelectedItem($item);
@@ -407,18 +452,16 @@ class ProcurementRequestWorkspace extends Page
         $search = trim((string) $this->itemSearch);
 
         return Item::query()
-            ->with('category:id,name')
+            ->with(['category:id,name,category_type', 'defaultStage:id,name,code'])
             ->where('is_active', true)
+            ->where(fn (Builder $query): Builder => $this->applyAllowedProcurementItemQuery($query))
             ->when($search !== '', function ($query) use ($search): void {
-                $query->where(function ($query) use ($search): void {
-                    $query->where('sku', 'like', '%'.$search.'%')
-                        ->orWhere('name', 'like', '%'.$search.'%');
-                });
+                $query->where(fn (Builder $query): Builder => $this->applyItemSearchQuery($query, $search));
             })
             ->orderBy('sku')
             ->orderBy('name')
             ->limit(12)
-            ->get(['id', 'sku', 'name', 'item_category_id'])
+            ->get(['id', 'sku', 'name', 'item_category_id', 'default_stage_id'])
             ->map(fn (Item $item): array => [
                 'id' => $item->id,
                 'label' => $this->itemSearchLabel($item),
@@ -447,6 +490,7 @@ class ProcurementRequestWorkspace extends Page
 
         return Item::query()
             ->with(['category:id,name', 'defaultUnit:id,code'])
+            ->where(fn (Builder $query): Builder => $this->applyAllowedProcurementItemQuery($query))
             ->find($this->itemId);
     }
 
@@ -462,6 +506,15 @@ class ProcurementRequestWorkspace extends Page
         }
 
         return Unit::query()->whereKey($this->unitId)->value('code') ?? 'stok';
+    }
+
+    public function selectedPurchaseUnitCode(): string
+    {
+        if (! $this->purchaseUnitId) {
+            return 'satuan';
+        }
+
+        return Unit::query()->whereKey($this->purchaseUnitId)->value('code') ?? 'satuan';
     }
 
     public function lineTotal(): float
@@ -489,6 +542,39 @@ class ProcurementRequestWorkspace extends Page
     public function cartTotal(): float
     {
         return array_sum(array_column($this->cart, 'line_total'));
+    }
+
+    public function cartTotalPurchaseQty(): float
+    {
+        return array_sum(array_column($this->cart, 'purchase_qty'));
+    }
+
+    public function cartTotalOrderedQty(): float
+    {
+        return array_sum(array_column($this->cart, 'ordered_qty'));
+    }
+
+    public function supplierName(): string
+    {
+        if (! $this->supplierId) {
+            return 'Supplier belum dipilih';
+        }
+
+        return Supplier::query()->whereKey($this->supplierId)->value('name') ?? 'Supplier belum dipilih';
+    }
+
+    public function canSaveDraft(): bool
+    {
+        return filled($this->supplierId) && $this->cart !== [];
+    }
+
+    public function cartLineIsAllowed(int $itemId): bool
+    {
+        $item = Item::query()
+            ->with(['category:id,name,slug', 'defaultStage:id,code'])
+            ->find($itemId);
+
+        return $item instanceof Item && $this->isAllowedProcurementItem($item);
     }
 
     public function statusOptions(): array
@@ -541,8 +627,9 @@ class ProcurementRequestWorkspace extends Page
         }
 
         $exact = Item::query()
-            ->with(['category:id,name', 'defaultUnit:id,code'])
+            ->with(['category:id,name,category_type', 'defaultStage:id,name,code', 'defaultUnit:id,code'])
             ->where('is_active', true)
+            ->where(fn (Builder $query): Builder => $this->applyAllowedProcurementItemQuery($query))
             ->where(function ($query) use ($search): void {
                 $query->where('sku', $search)
                     ->orWhere('name', $search);
@@ -554,15 +641,101 @@ class ProcurementRequestWorkspace extends Page
         }
 
         return Item::query()
-            ->with(['category:id,name', 'defaultUnit:id,code'])
+            ->with(['category:id,name,category_type', 'defaultStage:id,name,code', 'defaultUnit:id,code'])
             ->where('is_active', true)
-            ->where(function ($query) use ($search): void {
-                $query->where('sku', 'like', '%'.$search.'%')
-                    ->orWhere('name', 'like', '%'.$search.'%');
-            })
+            ->where(fn (Builder $query): Builder => $this->applyAllowedProcurementItemQuery($query))
+            ->where(fn (Builder $query): Builder => $this->applyItemSearchQuery($query, $search))
             ->limit(25)
             ->get()
             ->first(fn (Item $item): bool => $this->itemSearchLabel($item) === $search);
+    }
+
+    protected function applyItemSearchQuery(Builder $query, string $search): Builder
+    {
+        $needle = trim($search);
+        $normalized = str($needle)->lower()->trim()->toString();
+        $stageAliases = match ($normalized) {
+            'rm', 'raw material', 'raw', 'bahan baku' => ['raw_dirty'],
+            'rc', 'raw clean', 'clean' => ['raw_clean'],
+            'srm' => ['srm'],
+            'fg', 'finished goods' => ['finished_goods'],
+            'premix' => ['raw_clean'],
+            default => [],
+        };
+
+        return $query
+            ->where('sku', 'like', '%'.$needle.'%')
+            ->orWhere('name', 'like', '%'.$needle.'%')
+            ->orWhereHas('category', function (Builder $query) use ($needle, $normalized): void {
+                $query
+                    ->where('name', 'like', '%'.$needle.'%')
+                    ->orWhere('category_type', 'like', '%'.$normalized.'%');
+
+                if (in_array($normalized, ['rm', 'raw', 'bahan baku'], true)) {
+                    $query->orWhere('category_type', 'raw_material');
+                }
+            })
+            ->orWhereHas('defaultStage', function (Builder $query) use ($needle, $stageAliases): void {
+                $query
+                    ->where('name', 'like', '%'.$needle.'%')
+                    ->orWhere('code', 'like', '%'.$needle.'%');
+
+                if ($stageAliases !== []) {
+                    $query->orWhereIn('code', $stageAliases);
+                }
+            });
+    }
+
+    protected function applyAllowedProcurementItemQuery(Builder $query): Builder
+    {
+        return $query
+            ->whereHas('category', function (Builder $query): void {
+                $query
+                    ->whereIn('slug', ['raw-material', 'srm'])
+                    ->orWhereIn('name', ['Raw Material', 'SRM']);
+            })
+            ->orWhereHas('defaultStage', function (Builder $query): void {
+                $query->whereIn('code', ['raw_dirty', 'srm']);
+            });
+    }
+
+    protected function isAllowedProcurementItem(Item $item): bool
+    {
+        $item->loadMissing(['category:id,name,slug', 'defaultStage:id,code']);
+
+        return in_array($item->category?->slug, ['raw-material', 'srm'], true)
+            || in_array($item->category?->name, ['Raw Material', 'SRM'], true)
+            || in_array($item->defaultStage?->code, ['raw_dirty', 'srm'], true);
+    }
+
+    protected function ensureProcurementItemAllowed(Item $item): void
+    {
+        if ($this->isAllowedProcurementItem($item)) {
+            return;
+        }
+
+        throw ValidationException::withMessages([
+            'item_id' => 'Hanya barang kategori RM dan SRM yang dapat diajukan dalam pengadaan.',
+        ]);
+    }
+
+    protected function validateCartItems(): void
+    {
+        $items = Item::query()
+            ->with(['category:id,name,slug', 'defaultStage:id,code'])
+            ->whereIn('id', array_column($this->cart, 'item_id'))
+            ->get()
+            ->keyBy('id');
+
+        foreach ($this->cart as $line) {
+            $item = $items->get($line['item_id']);
+
+            if (! $item || ! $this->isAllowedProcurementItem($item)) {
+                throw ValidationException::withMessages([
+                    'cart' => 'Draft PO berisi barang kategori tidak valid. Hanya RM dan SRM yang dapat diajukan dalam pengadaan.',
+                ]);
+            }
+        }
     }
 
     protected function itemSearchLabel(Item $item): string

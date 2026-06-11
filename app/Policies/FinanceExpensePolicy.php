@@ -16,7 +16,7 @@ class FinanceExpensePolicy
      */
     public function viewAny(User $user): bool
     {
-        return $this->hasRole($user, [UserRole::Owner, UserRole::Finance, UserRole::HeadLogistics]);
+        return $this->isOwner($user) || $user->hasRole(UserRole::Finance->value);
     }
 
     /**
@@ -32,7 +32,7 @@ class FinanceExpensePolicy
      */
     public function create(User $user): bool
     {
-        return $this->hasRole($user, [UserRole::Owner, UserRole::Finance]);
+        return $this->isOwner($user) || $user->hasRole(UserRole::Finance->value);
     }
 
     /**

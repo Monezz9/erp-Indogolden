@@ -1056,3 +1056,2107 @@ html:not(.dark) .fi-page-dashboard .fi-wi-stats-overview-widget .fi-section.fi-s
     min-height: 8rem;
     border-radius: 0.95rem;
 }
+
+/* Finance cash-book readability */
+.fi-page .fi-ta {
+    border-radius: 1rem;
+}
+
+html:not(.dark) .fi-page .fi-ta,
+html:not(.dark) .fi-page .fi-wi-stats-overview-stat {
+    background: #ffffff;
+}
+
+html:not(.dark) .fi-page .fi-ta-table thead {
+    background: #fff8eb;
+}
+
+.fi-page .fi-ta-table th {
+    color: #475569;
+    font-size: 0.76rem;
+    font-weight: 850;
+}
+
+.fi-page .fi-ta-table td {
+    padding-block: 0.88rem;
+}
+
+.fi-page .fi-ta-empty-state {
+    padding-block: 2rem;
+}
+
+/* INDOGOLDEN Finance redesign */
+:root {
+    --ig-finance-gold: #B88A2F;
+    --ig-finance-green: #16A34A;
+    --ig-finance-green-soft: #ECFDF3;
+    --ig-finance-red: #DC2626;
+    --ig-finance-red-soft: #FEF2F2;
+    --ig-finance-purple: #7C3AED;
+    --ig-finance-purple-soft: #F5F3FF;
+    --ig-finance-blue: #2563EB;
+    --ig-finance-blue-soft: #EFF6FF;
+    --ig-finance-orange: #EA580C;
+    --ig-finance-orange-soft: #FFF7ED;
+    --ig-finance-border: #E5E7EB;
+    --ig-finance-bg: #F8FAFC;
+}
+
+.fi-resource-finance-incomes .fi-page-main,
+.fi-resource-finance-expenses .fi-page-main,
+.fi-page-cash-book .fi-page-main {
+    background: var(--ig-finance-bg);
+}
+
+.fi-resource-finance-incomes .fi-section,
+.fi-resource-finance-expenses .fi-section {
+    border: 1px solid var(--ig-finance-border);
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.05);
+}
+
+.fi-resource-finance-incomes .fi-section-header,
+.fi-resource-finance-expenses .fi-section-header {
+    padding: 1.1rem 1.25rem 0.75rem;
+}
+
+.fi-resource-finance-incomes .fi-section-content,
+.fi-resource-finance-expenses .fi-section-content {
+    gap: 1rem;
+}
+
+.ig-finance-preview {
+    position: sticky;
+    top: 5.25rem;
+    align-self: start;
+}
+
+.ig-finance-preview-card {
+    display: grid;
+    gap: 1rem;
+}
+
+.ig-finance-badge {
+    width: max-content;
+    border-radius: 999px;
+    padding: 0.3rem 0.7rem;
+    font-size: 0.74rem;
+    font-weight: 850;
+}
+
+.ig-finance-badge--income {
+    background: var(--ig-finance-green-soft);
+    color: var(--ig-finance-green);
+}
+
+.ig-finance-badge--expense {
+    background: var(--ig-finance-red-soft);
+    color: var(--ig-finance-red);
+}
+
+.ig-finance-preview-amount {
+    font-size: 1.9rem;
+    font-weight: 900;
+    line-height: 1.1;
+}
+
+.ig-finance-preview-amount--income {
+    color: var(--ig-finance-green);
+}
+
+.ig-finance-preview-amount--expense {
+    color: var(--ig-finance-red);
+}
+
+.ig-finance-preview-card dl {
+    display: grid;
+    gap: 0.7rem;
+}
+
+.ig-finance-preview-card dl div {
+    display: grid;
+    gap: 0.18rem;
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 0.62rem;
+}
+
+.ig-finance-preview-card dt,
+.ig-finance-flow__title {
+    color: #64748b;
+    font-size: 0.74rem;
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.ig-finance-preview-card dd {
+    margin: 0;
+    color: #0f172a;
+    font-size: 0.9rem;
+    font-weight: 750;
+}
+
+.ig-finance-flow {
+    margin-top: 0.4rem;
+    border: 1px solid #e9edf3;
+    border-radius: 1rem;
+    background: #f8fafc;
+    padding: 1rem;
+}
+
+.ig-finance-flow ol {
+    margin: 0.65rem 0 0 1rem;
+    display: grid;
+    gap: 0.45rem;
+    color: #475569;
+    font-size: 0.84rem;
+}
+
+.ig-book {
+    display: grid;
+    gap: 1rem;
+}
+
+.ig-book-card,
+.ig-book-hero {
+    border: 1px solid var(--ig-finance-border);
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.055);
+}
+
+.ig-book-hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.3rem 1.4rem;
+}
+
+.ig-book-eyebrow {
+    margin: 0 0 0.35rem;
+    color: var(--ig-finance-gold);
+    font-size: 0.75rem;
+    font-weight: 900;
+    text-transform: uppercase;
+}
+
+.ig-book-hero h2 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.65rem;
+    font-weight: 900;
+    line-height: 1.15;
+}
+
+.ig-book-hero p {
+    margin: 0.45rem 0 0;
+    max-width: 48rem;
+    color: #64748b;
+    font-size: 0.92rem;
+}
+
+.ig-book-filters {
+    display: grid;
+    grid-template-columns: minmax(13rem, 20rem) minmax(12rem, 16rem) minmax(10rem, 12rem) minmax(10rem, 12rem);
+    gap: 0.7rem;
+}
+
+.ig-book-input,
+.ig-book-select {
+    min-height: 2.65rem;
+    width: 100%;
+    border: 1px solid #dbe2ea;
+    border-radius: 0.85rem;
+    background: #fff;
+    padding: 0.55rem 0.75rem;
+    color: #334155;
+    font-size: 0.88rem;
+    outline: none;
+}
+
+.ig-book-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.ig-book-kpi {
+    display: grid;
+    gap: 0.45rem;
+    min-height: 8rem;
+    padding: 1.1rem;
+    overflow: hidden;
+    position: relative;
+}
+
+.ig-book-kpi::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 4px;
+}
+
+.ig-book-kpi--purple::before { background: var(--ig-finance-purple); }
+.ig-book-kpi--green::before { background: var(--ig-finance-green); }
+.ig-book-kpi--red::before { background: var(--ig-finance-red); }
+.ig-book-kpi--blue::before { background: var(--ig-finance-blue); }
+
+.ig-book-kpi span,
+.ig-book-cash span {
+    color: #64748b;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.ig-book-kpi strong,
+.ig-book-cash strong {
+    color: #0f172a;
+    font-size: 1.4rem;
+    font-weight: 900;
+    line-height: 1.15;
+}
+
+.ig-book-kpi small {
+    color: #94a3b8;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.ig-book-cash {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.ig-book-cash .ig-book-card {
+    display: grid;
+    gap: 0.45rem;
+    padding: 1rem;
+}
+
+.ig-book-main {
+    display: grid;
+    grid-template-columns: minmax(18rem, 0.86fr) minmax(0, 1.45fr);
+    gap: 1rem;
+    align-items: start;
+}
+
+.ig-book-left {
+    display: grid;
+    gap: 1rem;
+}
+
+.ig-book-section {
+    padding: 1.1rem;
+}
+
+.ig-book-section-head {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.ig-book-section-head h3 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.ig-book-section-head p {
+    margin: 0.25rem 0 0;
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+.ig-book-section-head a {
+    color: var(--ig-finance-blue);
+    font-size: 0.8rem;
+    font-weight: 850;
+}
+
+.ig-book-expenses {
+    display: grid;
+    gap: 0.65rem;
+}
+
+.ig-book-expense {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    border: 1px solid #f1f5f9;
+    border-radius: 0.85rem;
+    background: #fff;
+    padding: 0.72rem;
+}
+
+.ig-book-expense strong,
+.ig-book-expense span {
+    display: block;
+}
+
+.ig-book-expense strong {
+    color: #0f172a;
+    font-size: 0.85rem;
+    font-weight: 850;
+}
+
+.ig-book-expense span {
+    margin-top: 0.2rem;
+    color: #64748b;
+    font-size: 0.76rem;
+}
+
+.ig-book-expense b {
+    color: var(--ig-finance-red);
+    font-size: 0.88rem;
+    white-space: nowrap;
+}
+
+.ig-book-chart {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.ig-book-chart-row {
+    display: grid;
+    grid-template-columns: 3.3rem 1fr;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.ig-book-chart-row span {
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.ig-book-chart-row div {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.ig-book-bar {
+    display: block;
+    height: 0.48rem;
+    border-radius: 999px;
+}
+
+.ig-book-bar--green { background: var(--ig-finance-green); }
+.ig-book-bar--red { background: var(--ig-finance-red); }
+
+.ig-book-month {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.ig-book-month div {
+    border: 1px solid #eef2f7;
+    border-radius: 0.85rem;
+    padding: 0.8rem;
+}
+
+.ig-book-month span,
+.ig-book-month strong {
+    display: block;
+}
+
+.ig-book-month span {
+    color: #64748b;
+    font-size: 0.74rem;
+    font-weight: 800;
+}
+
+.ig-book-month strong {
+    margin-top: 0.35rem;
+    color: #0f172a;
+    font-size: 0.94rem;
+    font-weight: 900;
+}
+
+.ig-book-table-card {
+    min-width: 0;
+}
+
+.ig-book-table-wrap {
+    overflow: auto;
+}
+
+.ig-book-table {
+    width: 100%;
+    min-width: 58rem;
+    border-collapse: collapse;
+}
+
+.ig-book-table th {
+    background: #f8fafc;
+    color: #475569;
+    font-size: 0.72rem;
+    font-weight: 900;
+    padding: 0.75rem;
+    text-align: left;
+    text-transform: uppercase;
+}
+
+.ig-book-table td {
+    border-top: 1px solid #eef2f7;
+    color: #334155;
+    font-size: 0.82rem;
+    padding: 0.82rem 0.75rem;
+    vertical-align: middle;
+}
+
+.ig-book-date-row td {
+    background: #f8fafc;
+    color: #0f172a;
+    font-weight: 900;
+}
+
+.ig-book-badge,
+.ig-book-channel {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    padding: 0.22rem 0.58rem;
+    font-size: 0.72rem;
+    font-weight: 850;
+    white-space: nowrap;
+}
+
+.ig-book-badge--green { background: var(--ig-finance-green-soft); color: var(--ig-finance-green); }
+.ig-book-badge--orange { background: var(--ig-finance-orange-soft); color: var(--ig-finance-orange); }
+.ig-book-badge--blue { background: var(--ig-finance-blue-soft); color: var(--ig-finance-blue); }
+.ig-book-badge--purple { background: var(--ig-finance-purple-soft); color: var(--ig-finance-purple); }
+.ig-book-badge--gray,
+.ig-book-channel { background: #f1f5f9; color: #475569; }
+
+.ig-book-money {
+    text-align: right;
+    white-space: nowrap;
+    font-weight: 850;
+}
+
+.green { color: var(--ig-finance-green) !important; }
+.red { color: var(--ig-finance-red) !important; }
+.purple { color: var(--ig-finance-purple) !important; }
+.strong { color: #0f172a !important; font-weight: 900; }
+
+.ig-book-empty {
+    border: 1px dashed #cbd5e1;
+    border-radius: 0.85rem;
+    padding: 1rem;
+    color: #64748b;
+    text-align: center;
+}
+
+@media (max-width: 1180px) {
+    .ig-book-main,
+    .ig-book-hero {
+        grid-template-columns: 1fr;
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ig-book-filters {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ig-book-kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 720px) {
+    .ig-book-filters,
+    .ig-book-kpis,
+    .ig-book-cash,
+    .ig-book-month {
+        grid-template-columns: 1fr;
+    }
+
+    .ig-finance-preview {
+        position: static;
+    }
+}
+
+/* Inventory Workspace */
+.fi-resource-items .fi-page-main {
+    background: #F8FAFC;
+}
+
+.ig-inventory-hero {
+    border: 1px solid #E5E7EB;
+    border-radius: 1.5rem;
+    background: #fff;
+    padding: 2rem 2.25rem;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.058);
+}
+
+.ig-inventory-hero__breadcrumbs {
+    margin-bottom: 1rem;
+    opacity: 0.72;
+}
+
+.ig-inventory-hero__body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.ig-inventory-hero__title-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.ig-inventory-hero__icon {
+    display: inline-flex;
+    width: 3rem;
+    height: 3rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1rem;
+    background: #FFF7ED;
+    color: #B88A2F;
+    box-shadow: inset 0 0 0 1px rgba(184, 138, 47, 0.16);
+}
+
+.ig-inventory-hero__icon .fi-icon {
+    width: 1.55rem;
+    height: 1.55rem;
+}
+
+.ig-inventory-hero h1 {
+    margin: 0;
+    color: #0f172a;
+    font-size: 1.75rem;
+    font-weight: 900;
+    line-height: 1.15;
+}
+
+.ig-inventory-hero p {
+    margin: 0.55rem 0 0;
+    max-width: 42rem;
+    color: #64748b;
+    font-size: 0.95rem;
+    line-height: 1.55;
+}
+
+.ig-inventory-hero__actions .fi-actions {
+    justify-content: flex-end;
+    gap: 0.55rem;
+}
+
+.ig-inventory-hero__actions .fi-btn {
+    border-radius: 0.9rem;
+}
+
+.ig-inventory-hero__actions .fi-btn-color-warning {
+    background: #B88A2F;
+}
+
+@media (hover: hover) {
+    .ig-inventory-hero__actions .fi-btn-color-warning:hover {
+        background: #9A7227;
+    }
+}
+
+.fi-resource-items .fi-page-header-main-ctn,
+.fi-resource-items .fi-page-main,
+.fi-resource-items .fi-page-content {
+    width: 100%;
+}
+
+.fi-resource-items .fi-page-content {
+    gap: 1rem;
+}
+
+.fi-resource-items .fi-header-actions {
+    gap: 0.55rem;
+}
+
+.fi-resource-items .fi-btn-color-warning {
+    --color-600: #B88A2F;
+    --color-700: #9A7227;
+}
+
+.fi-resource-items .fi-wi-stats-overview-widget .fi-section.fi-section-not-contained,
+.fi-resource-items .fi-ta {
+    border: 1px solid #E5E7EB;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.052);
+}
+
+.fi-resource-items .fi-wi-stats-overview-widget .fi-wi-stats-overview-stat {
+    min-height: 8.2rem;
+    border: 1px solid #E5E7EB;
+    border-radius: 1.25rem;
+    background: #fff;
+    box-shadow: none;
+}
+
+.fi-resource-items .fi-wi-stats-overview-widget .fi-wi-stats-overview-stat-label {
+    color: #64748b;
+    font-weight: 850;
+}
+
+.fi-resource-items .fi-wi-stats-overview-widget .fi-wi-stats-overview-stat-value {
+    color: #0f172a;
+    font-size: 1.72rem;
+    font-weight: 900;
+}
+
+.fi-resource-items .fi-wi-stats-overview-widget .fi-wi-stats-overview-stat-label-ctn > .fi-icon {
+    width: 2.35rem;
+    height: 2.35rem;
+    border-radius: 999px;
+    padding: 0.55rem;
+    background: #FFF7ED;
+    color: #B88A2F;
+}
+
+.fi-resource-items .ig-inventory-summary-widget {
+    width: 100%;
+}
+
+.fi-resource-items .ig-inventory-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+@media (min-width: 640px) {
+    .fi-resource-items .ig-inventory-summary-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .fi-resource-items .ig-inventory-summary-grid {
+        grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+}
+
+.fi-resource-items .ig-inventory-summary-card {
+    display: flex;
+    min-height: 7.15rem;
+    align-items: center;
+    gap: 1rem;
+    border: 1px solid #E5E7EB;
+    border-radius: 1rem;
+    background: #fff;
+    padding: 1.25rem;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.055);
+    transition:
+        transform 160ms ease,
+        border-color 160ms ease,
+        box-shadow 160ms ease;
+}
+
+@media (hover: hover) {
+    .fi-resource-items .ig-inventory-summary-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.09);
+    }
+}
+
+.fi-resource-items .ig-inventory-summary-card__icon {
+    display: inline-flex;
+    width: 3.2rem;
+    height: 3.2rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.95rem;
+}
+
+.fi-resource-items .ig-inventory-summary-card__icon .fi-icon {
+    width: 1.65rem;
+    height: 1.65rem;
+}
+
+.fi-resource-items .ig-inventory-summary-card__content {
+    min-width: 0;
+}
+
+.fi-resource-items .ig-inventory-summary-card__label {
+    color: #64748B;
+    font-size: 0.78rem;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.fi-resource-items .ig-inventory-summary-card__value {
+    margin-top: 0.28rem;
+    color: #0F172A;
+    font-size: 1.78rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.fi-resource-items .ig-inventory-summary-card__description {
+    margin-top: 0.42rem;
+    color: #64748B;
+    font-size: 0.82rem;
+    font-weight: 650;
+    line-height: 1.25;
+}
+
+.fi-resource-items .ig-inventory-summary-card--total .ig-inventory-summary-card__icon {
+    background: #EAF2FF;
+    color: #2563EB;
+}
+
+.fi-resource-items .ig-inventory-summary-card--finished .ig-inventory-summary-card__icon {
+    background: #DCFCE7;
+    color: #16A34A;
+}
+
+.fi-resource-items .ig-inventory-summary-card--raw .ig-inventory-summary-card__icon {
+    background: #FEF3C7;
+    color: #D97706;
+}
+
+.fi-resource-items .ig-inventory-summary-card--clean .ig-inventory-summary-card__icon {
+    background: #F3E8FF;
+    color: #9333EA;
+}
+
+.fi-resource-items .ig-inventory-summary-card--critical {
+    border-color: #FECACA;
+}
+
+.fi-resource-items .ig-inventory-summary-card--critical .ig-inventory-summary-card__icon {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.fi-resource-items .ig-inventory-summary-card--critical .ig-inventory-summary-card__value {
+    color: #DC2626;
+}
+
+.fi-resource-items .fi-ta-header-ctn {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem 1.25rem;
+    border-bottom: 1px solid #E5E7EB;
+    padding: 1rem 3rem 1rem 1.5rem !important;
+}
+
+.ig-items-table-tabs {
+    display: flex;
+    flex: 1 1 22rem;
+    min-width: 0;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-block: 0.125rem;
+    scrollbar-width: thin;
+}
+
+.ig-items-table-tabs__item {
+    display: inline-flex;
+    min-height: 2.35rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #E5E7EB;
+    border-radius: 999px;
+    background: #fff;
+    padding-inline: 0.95rem;
+    color: #475569;
+    font-size: 0.83rem;
+    font-weight: 850;
+    line-height: 1;
+    transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+}
+
+.ig-items-table-tabs__item--active {
+    border-color: #B88A2F;
+    background: #B88A2F;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(184, 138, 47, 0.16);
+}
+
+.fi-resource-items .fi-ta-filters-above-content-ctn {
+    order: 3;
+    display: flex;
+    flex: 0 0 auto;
+    border: 0;
+    margin-inline-start: 0.25rem !important;
+    margin-inline-end: 1rem !important;
+    padding: 0 !important;
+}
+
+.fi-resource-items .fi-ta-filters-above-content-ctn .fi-ta-filters-trigger-action-ctn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+.fi-resource-items .fi-ta-filters-above-content-ctn .fi-ta-filters-trigger-action-ctn .fi-icon-btn {
+    position: relative;
+    min-width: 2rem;
+}
+
+.fi-resource-items .fi-ta-filters-above-content-ctn.fi-open {
+    display: grid;
+    flex-basis: 100%;
+    gap: 0.75rem;
+    padding-top: 0.25rem;
+}
+
+.fi-resource-items .fi-ta-filters-above-content-ctn.fi-open .fi-ta-filters-trigger-action-ctn {
+    margin-top: 0;
+    justify-self: end;
+}
+
+.fi-resource-items .fi-ta-header-toolbar {
+    order: 2;
+    flex: 0 0 auto;
+    border: 0;
+    margin-left: auto !important;
+    padding: 0 0.75rem 0 0 !important;
+}
+
+.fi-resource-items .fi-ta-header-toolbar,
+.fi-resource-items .fi-ta-header-toolbar > div,
+.fi-resource-items .fi-ta-header-toolbar > div > div {
+    align-items: center;
+    gap: 0.75rem !important;
+}
+
+.fi-resource-items .fi-ta-header-toolbar > :nth-child(2) {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem !important;
+    margin-left: 0 !important;
+    padding-inline-end: 0.5rem;
+}
+
+.fi-resource-items .fi-ta-header-toolbar > :nth-child(2) > * + * {
+    margin-inline-start: 0.75rem !important;
+}
+
+.fi-resource-items .fi-ta-search-field {
+    width: min(100%, 19rem);
+    min-width: min(100%, 17.5rem);
+}
+
+.fi-resource-items .fi-ta-search-field input {
+    min-height: 2.65rem;
+    border-radius: 0.95rem;
+}
+
+.fi-resource-items .fi-ta-header-toolbar .fi-icon-btn,
+.fi-resource-items .fi-ta-header-toolbar .fi-btn.fi-icon-btn,
+.fi-resource-items .fi-ta-filters-above-content-ctn .fi-icon-btn {
+    width: 2.5rem;
+    height: 2.5rem;
+    min-width: 2.5rem;
+    margin: 0 !important;
+    border-radius: 0.75rem;
+}
+
+.fi-resource-items .fi-ta-header-toolbar .fi-dropdown,
+.fi-resource-items .fi-ta-filters-above-content-ctn .fi-dropdown,
+.fi-resource-items .fi-ta-header-toolbar .fi-modal,
+.fi-resource-items .fi-ta-filters-above-content-ctn .fi-modal {
+    display: inline-flex;
+    align-items: center;
+}
+
+.fi-resource-items .fi-ta-header-toolbar .fi-icon-btn-badge-ctn,
+.fi-resource-items .fi-ta-header-toolbar .fi-btn-badge-ctn,
+.fi-resource-items .fi-ta-filters-above-content-ctn .fi-icon-btn-badge-ctn,
+.fi-resource-items .fi-ta-filters-above-content-ctn .fi-btn-badge-ctn {
+    top: 0.15rem;
+    inset-inline-end: 0.15rem;
+    inset-inline-start: auto;
+    transform: none;
+}
+
+.fi-resource-items .fi-ta-header-toolbar .fi-icon-btn:hover,
+.fi-resource-items .fi-ta-header-toolbar .fi-btn.fi-icon-btn:hover,
+.fi-resource-items .fi-ta-filters-above-content-ctn .fi-icon-btn:hover {
+    background: #F3F4F6;
+}
+
+.fi-resource-items .fi-ta-table thead {
+    background: #F8FAFC;
+}
+
+.fi-resource-items .fi-ta-table th {
+    color: #334155;
+    font-size: 0.73rem;
+    font-weight: 900;
+}
+
+.fi-resource-items .fi-ta-table td {
+    padding-block: 0.95rem;
+}
+
+.fi-resource-items .fi-ta-table tbody tr {
+    transition: background-color 0.14s ease, transform 0.14s ease;
+}
+
+@media (hover: hover) {
+    .fi-resource-items .fi-ta-table tbody tr:hover {
+        background: #fffdf7;
+    }
+
+    .fi-resource-items .fi-ta-actions .fi-btn:hover,
+    .fi-resource-items .fi-ta-actions button:hover {
+        transform: translateY(-1px);
+    }
+}
+
+.fi-resource-items .fi-ta-actions {
+    gap: 0.4rem;
+}
+
+.fi-resource-items .fi-ta-actions .fi-btn,
+.fi-resource-items .fi-ta-actions button {
+    border-radius: 999px;
+    transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
+}
+
+.fi-resource-items .fi-ta-empty-state {
+    padding-block: 3rem;
+}
+
+@media (max-width: 720px) {
+    .ig-inventory-hero {
+        padding: 1.25rem;
+    }
+
+    .ig-inventory-hero__body,
+    .ig-inventory-hero__title-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ig-inventory-hero h1 {
+        font-size: 1.42rem;
+    }
+
+    .ig-inventory-hero__actions .fi-actions,
+    .ig-inventory-hero__actions .fi-btn {
+        width: 100%;
+    }
+
+    .ig-inventory-hero__actions .fi-actions {
+        display: grid;
+    }
+
+    .fi-resource-items .fi-ta-header-ctn {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 1rem !important;
+    }
+
+    .ig-items-table-tabs,
+    .fi-resource-items .fi-ta-header-toolbar {
+        flex-basis: 100%;
+        width: 100%;
+    }
+
+    .fi-resource-items .fi-ta-header-toolbar {
+        margin-left: 0;
+        padding-right: 0 !important;
+    }
+
+    .fi-resource-items .fi-ta-header-toolbar > div {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .fi-resource-items .fi-ta-search-field {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .fi-resource-items .fi-ta-filters-above-content-ctn {
+        margin-left: auto;
+    }
+}
+
+@media (max-width: 1024px) and (min-width: 721px) {
+    .ig-inventory-hero__body {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .ig-inventory-hero__actions .fi-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 720px) {
+    .fi-resource-items .fi-ta-table {
+        min-width: 0;
+    }
+
+    .fi-resource-items .fi-ta-table thead {
+        display: none;
+    }
+
+    .fi-resource-items .fi-ta-table tbody {
+        display: grid;
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .fi-resource-items .fi-ta-table tbody tr {
+        display: grid;
+        gap: 0.65rem;
+        border: 1px solid #E5E7EB;
+        border-radius: 1.25rem;
+        background: #fff;
+        padding: 0.9rem;
+    }
+
+    .fi-resource-items .fi-ta-table tbody td {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        border: 0;
+        padding: 0;
+    }
+
+    .fi-resource-items .fi-ta-table tbody td:nth-child(n+5):not(:last-child) {
+        display: none;
+    }
+}
+
+/* User & Access Management */
+.fi-resource-users .fi-page-main {
+    background: #F8FAFC;
+}
+
+.fi-resource-users .fi-page-content {
+    gap: 1rem;
+}
+
+.ig-users-hero {
+    border: 1px solid #E5E7EB;
+    border-radius: 1.5rem;
+    background: #fff;
+    padding: 2rem 2.25rem;
+    box-shadow: 0 18px 42px rgba(15, 23, 42, 0.058);
+}
+
+.ig-users-hero__breadcrumbs {
+    margin-bottom: 1rem;
+    opacity: 0.72;
+}
+
+.ig-users-hero__body,
+.ig-users-hero__title-row,
+.ig-user-profile-cell,
+.ig-user-detail__header {
+    display: flex;
+    align-items: center;
+}
+
+.ig-users-hero__body {
+    justify-content: space-between;
+    gap: 2rem;
+}
+
+.ig-users-hero__title-row {
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.ig-users-hero__icon,
+.ig-users-kpi-card__icon,
+.ig-user-avatar {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ig-users-hero__icon {
+    width: 3rem;
+    height: 3rem;
+    flex: 0 0 auto;
+    border-radius: 1rem;
+    background: #FFF7ED;
+    color: #B88A2F;
+    box-shadow: inset 0 0 0 1px rgba(184, 138, 47, 0.16);
+}
+
+.ig-users-hero__icon .fi-icon {
+    width: 1.55rem;
+    height: 1.55rem;
+}
+
+.ig-users-hero h1 {
+    margin: 0;
+    color: #0F172A;
+    font-size: 1.75rem;
+    font-weight: 900;
+    line-height: 1.15;
+}
+
+.ig-users-hero p {
+    margin: 0.55rem 0 0;
+    max-width: 46rem;
+    color: #64748B;
+    font-size: 0.95rem;
+    line-height: 1.55;
+}
+
+.ig-users-hero__actions .fi-actions {
+    justify-content: flex-end;
+    gap: 0.55rem;
+}
+
+.ig-users-hero__actions .fi-btn {
+    border-radius: 0.9rem;
+}
+
+.ig-users-hero__actions .fi-btn-color-warning,
+.fi-resource-users .fi-btn-color-warning {
+    --color-600: #B88A2F;
+    --color-700: #9A7227;
+    background: #B88A2F;
+}
+
+.ig-users-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+@media (min-width: 640px) {
+    .ig-users-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (min-width: 1024px) {
+    .ig-users-kpi-grid {
+        grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+}
+
+.ig-users-kpi-card {
+    display: flex;
+    min-height: 7rem;
+    align-items: center;
+    gap: 0.9rem;
+    border: 1px solid #E5E7EB;
+    border-radius: 1rem;
+    background: #fff;
+    padding: 1.15rem;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.055);
+    transition: transform 160ms ease, box-shadow 160ms ease;
+}
+
+@media (hover: hover) {
+    .ig-users-kpi-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 18px 36px rgba(15, 23, 42, 0.09);
+    }
+}
+
+.ig-users-kpi-card__icon {
+    width: 3rem;
+    height: 3rem;
+    flex: 0 0 auto;
+    border-radius: 0.95rem;
+}
+
+.ig-users-kpi-card__icon .fi-icon {
+    width: 1.55rem;
+    height: 1.55rem;
+}
+
+.ig-users-kpi-card__label {
+    color: #64748B;
+    font-size: 0.75rem;
+    font-weight: 850;
+    line-height: 1.2;
+}
+
+.ig-users-kpi-card__value {
+    margin-top: 0.3rem;
+    color: #0F172A;
+    font-size: 1.65rem;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.ig-users-kpi-card__description {
+    margin-top: 0.4rem;
+    color: #64748B;
+    font-size: 0.78rem;
+    font-weight: 650;
+}
+
+.ig-users-kpi-card--slate .ig-users-kpi-card__icon { background: #EAF2FF; color: #2563EB; }
+.ig-users-kpi-card--green .ig-users-kpi-card__icon,
+.ig-users-kpi-card--emerald .ig-users-kpi-card__icon { background: #DCFCE7; color: #16A34A; }
+.ig-users-kpi-card--gold .ig-users-kpi-card__icon { background: #FEF3C7; color: #B88A2F; }
+.ig-users-kpi-card--orange .ig-users-kpi-card__icon { background: #FFEDD5; color: #EA580C; }
+.ig-users-kpi-card--blue .ig-users-kpi-card__icon { background: #DBEAFE; color: #2563EB; }
+
+.fi-resource-users .fi-ta,
+.fi-resource-users .fi-section {
+    border: 1px solid #E5E7EB;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.052);
+}
+
+.fi-resource-users .fi-ta-header-ctn {
+    padding: 1rem 1.5rem !important;
+}
+
+.fi-resource-users .fi-ta-header-toolbar {
+    gap: 0.75rem !important;
+}
+
+.fi-resource-users .fi-ta-search-field {
+    width: min(100%, 22rem);
+}
+
+.fi-resource-users .fi-ta-search-field input {
+    min-height: 2.65rem;
+    border-radius: 0.95rem;
+}
+
+.fi-resource-users .fi-ta-table thead {
+    background: #F8FAFC;
+}
+
+.fi-resource-users .fi-ta-table th {
+    color: #334155;
+    font-size: 0.73rem;
+    font-weight: 900;
+}
+
+.fi-resource-users .fi-ta-table td {
+    padding-block: 0.95rem;
+}
+
+.ig-user-profile-cell {
+    min-width: 0;
+    gap: 0.8rem;
+    padding-block: 0.1rem;
+}
+
+.ig-user-avatar {
+    width: 2.65rem;
+    height: 2.65rem;
+    flex: 0 0 auto;
+    border-radius: 0.9rem;
+    background: #FFF7ED;
+    color: #9A7227;
+    font-size: 0.84rem;
+    font-weight: 900;
+    box-shadow: inset 0 0 0 1px rgba(184, 138, 47, 0.16);
+}
+
+.ig-user-avatar--lg {
+    width: 3.4rem;
+    height: 3.4rem;
+    border-radius: 1rem;
+    font-size: 1rem;
+}
+
+.ig-user-profile-cell__copy {
+    min-width: 0;
+}
+
+.ig-user-profile-cell__name {
+    overflow: hidden;
+    color: #0F172A;
+    font-size: 0.92rem;
+    font-weight: 900;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ig-user-profile-cell__meta,
+.ig-user-profile-cell__email,
+.ig-user-detail__meta,
+.ig-user-preview-card__meta,
+.ig-user-preview-card__email {
+    overflow: hidden;
+    color: #64748B;
+    font-size: 0.78rem;
+    font-weight: 650;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ig-user-profile-cell__email,
+.ig-user-preview-card__email {
+    margin-top: 0.08rem;
+}
+
+.ig-user-role-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+}
+
+.ig-user-role-badge,
+.ig-user-status-badge {
+    display: inline-flex;
+    align-items: center;
+    width: max-content;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 0.27rem 0.62rem;
+    font-size: 0.74rem;
+    font-weight: 850;
+    line-height: 1;
+}
+
+.ig-user-role-badge--gold { border-color: #FDE68A; background: #FEF3C7; color: #92400E; }
+.ig-user-role-badge--green { border-color: #BBF7D0; background: #DCFCE7; color: #15803D; }
+.ig-user-role-badge--orange { border-color: #FED7AA; background: #FFEDD5; color: #C2410C; }
+.ig-user-role-badge--blue { border-color: #BFDBFE; background: #DBEAFE; color: #1D4ED8; }
+.ig-user-role-badge--gray { border-color: #E5E7EB; background: #F8FAFC; color: #475569; }
+
+.ig-user-status-badge {
+    gap: 0.32rem;
+}
+
+.ig-user-status-badge .fi-icon {
+    width: 0.92rem;
+    height: 0.92rem;
+}
+
+.ig-user-status-badge--active {
+    border-color: #BBF7D0;
+    background: #DCFCE7;
+    color: #15803D;
+}
+
+.ig-user-status-badge--inactive {
+    border-color: #E5E7EB;
+    background: #F1F5F9;
+    color: #64748B;
+}
+
+.ig-user-detail {
+    display: grid;
+    gap: 1rem;
+}
+
+.ig-user-detail__header {
+    gap: 0.85rem;
+}
+
+.ig-user-detail__name,
+.ig-user-preview-card__name {
+    color: #0F172A;
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.ig-user-detail__grid,
+.ig-user-preview-card dl {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+}
+
+.ig-user-detail__grid div,
+.ig-user-preview-card dl div {
+    border: 1px solid #E5E7EB;
+    border-radius: 0.9rem;
+    background: #F8FAFC;
+    padding: 0.75rem;
+}
+
+.ig-user-detail__grid span,
+.ig-user-preview-card dt {
+    display: block;
+    color: #64748B;
+    font-size: 0.72rem;
+    font-weight: 850;
+}
+
+.ig-user-detail__grid strong,
+.ig-user-preview-card dd {
+    margin: 0.25rem 0 0;
+    display: block;
+    color: #0F172A;
+    font-size: 0.84rem;
+    font-weight: 850;
+}
+
+.ig-user-access-checklist {
+    display: grid;
+    gap: 0.5rem;
+}
+
+.ig-user-access-checklist div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border: 1px solid #E5E7EB;
+    border-radius: 0.85rem;
+    background: #F8FAFC;
+    padding: 0.68rem 0.75rem;
+    color: #64748B;
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.ig-user-access-checklist div .fi-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.ig-user-access-checklist .is-allowed {
+    border-color: #BBF7D0;
+    background: #F0FDF4;
+    color: #15803D;
+}
+
+.ig-user-access-checklist .is-muted {
+    color: #94A3B8;
+}
+
+.ig-user-preview-section {
+    position: sticky;
+    top: 5.25rem;
+}
+
+.ig-user-preview-card {
+    display: grid;
+    gap: 0.9rem;
+}
+
+.ig-user-role-options .fi-fo-checkbox-list-option {
+    border: 1px solid #E5E7EB;
+    border-radius: 0.9rem;
+    background: #fff;
+    padding: 0.8rem;
+}
+
+.ig-user-role-options .fi-fo-checkbox-list-option:hover {
+    background: #FFFDF7;
+}
+
+@media (max-width: 1024px) {
+    .ig-users-hero__body {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .ig-users-hero__actions .fi-actions {
+        justify-content: flex-start;
+    }
+
+    .ig-user-preview-section {
+        position: static;
+    }
+}
+
+@media (max-width: 720px) {
+    .ig-users-hero {
+        padding: 1.25rem;
+    }
+
+    .ig-users-hero__title-row,
+    .ig-users-hero__actions .fi-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .ig-users-hero h1 {
+        font-size: 1.42rem;
+    }
+
+    .ig-users-hero__actions .fi-actions,
+    .ig-users-hero__actions .fi-btn {
+        width: 100%;
+    }
+
+    .ig-user-detail__grid,
+    .ig-user-preview-card dl {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Procurement Request Workspace */
+.fi-page-procurement-request-workspace .fi-page-main {
+    background: #F8FAFC;
+}
+
+.ig-procurement {
+    display: grid;
+    gap: 1rem;
+}
+
+.ig-procurement-hero,
+.ig-procurement-card,
+.ig-procurement-summary-card {
+    border: 1px solid #E5E7EB;
+    border-radius: 1rem;
+    background: #fff;
+    box-shadow: 0 14px 34px rgba(15, 23, 42, 0.055);
+}
+
+.ig-procurement-hero {
+    display: grid;
+    gap: 1.25rem;
+    padding: 1.5rem;
+}
+
+.ig-procurement-hero__title {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+}
+
+.ig-procurement-hero__icon {
+    display: inline-flex;
+    width: 3rem;
+    height: 3rem;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 1rem;
+    background: #FFF7ED;
+    color: #B88A2F;
+    box-shadow: inset 0 0 0 1px rgba(184, 138, 47, 0.16);
+}
+
+.ig-procurement-hero__icon .fi-icon {
+    width: 1.55rem;
+    height: 1.55rem;
+}
+
+.ig-procurement-hero h1 {
+    margin: 0;
+    color: #0F172A;
+    font-size: 1.7rem;
+    font-weight: 900;
+    line-height: 1.15;
+}
+
+.ig-procurement-hero p {
+    margin: 0.45rem 0 0;
+    max-width: 46rem;
+    color: #64748B;
+    font-size: 0.95rem;
+}
+
+.ig-procurement-steps {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.65rem;
+}
+
+.ig-procurement-steps span {
+    border: 1px solid #E5E7EB;
+    border-radius: 999px;
+    background: #F8FAFC;
+    padding: 0.58rem 0.72rem;
+    color: #475569;
+    font-size: 0.78rem;
+    font-weight: 850;
+    text-align: center;
+}
+
+.ig-procurement-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(19rem, 24rem);
+    gap: 1rem;
+    align-items: start;
+}
+
+.ig-procurement-main {
+    display: grid;
+    min-width: 0;
+    gap: 1rem;
+}
+
+.ig-procurement-card {
+    padding: 1.25rem;
+}
+
+.ig-procurement-card__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.ig-procurement-card__head h2,
+.ig-procurement-summary-card h2 {
+    margin: 0;
+    color: #0F172A;
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.ig-procurement-card__head p {
+    margin: 0.28rem 0 0;
+    color: #64748B;
+    font-size: 0.84rem;
+}
+
+.ig-procurement-card__badge,
+.ig-procurement-summary-card__badge {
+    display: inline-flex;
+    width: max-content;
+    border-radius: 999px;
+    background: #FEF3C7;
+    padding: 0.3rem 0.68rem;
+    color: #92400E;
+    font-size: 0.73rem;
+    font-weight: 850;
+}
+
+.ig-procurement-info-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.ig-procurement-item-grid {
+    display: grid;
+    grid-template-columns: minmax(16rem, 1.4fr) minmax(12rem, 0.8fr) minmax(12rem, 1fr);
+    gap: 0.85rem;
+}
+
+.ig-procurement-qty-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.85rem;
+    margin-top: 0.85rem;
+}
+
+.ig-procurement-price-grid {
+    display: grid;
+    grid-template-columns: minmax(12rem, 0.38fr) minmax(0, 1fr);
+    gap: 0.85rem;
+    margin-top: 0.85rem;
+    align-items: stretch;
+}
+
+.ig-procurement-field {
+    position: relative;
+    display: grid;
+    gap: 0.38rem;
+    color: #334155;
+    font-size: 0.8rem;
+    font-weight: 850;
+}
+
+.ig-procurement-field input,
+.ig-procurement-field select,
+.ig-procurement-field textarea {
+    width: 100%;
+    min-height: 2.65rem;
+    border: 1px solid #D8DEE8;
+    border-radius: 0.85rem;
+    background: #fff;
+    padding: 0.58rem 0.75rem;
+    color: #0F172A;
+    font-size: 0.88rem;
+    font-weight: 650;
+    outline: none;
+    transition: border-color 140ms ease, box-shadow 140ms ease, background-color 140ms ease;
+}
+
+.ig-procurement-field input[readonly] {
+    background: #F8FAFC;
+    color: #475569;
+}
+
+.ig-procurement-field textarea {
+    resize: vertical;
+}
+
+.ig-procurement-field input:focus,
+.ig-procurement-field select:focus,
+.ig-procurement-field textarea:focus {
+    border-color: #B88A2F;
+    box-shadow: 0 0 0 3px rgba(184, 138, 47, 0.14);
+}
+
+.ig-procurement-field small {
+    color: #94A3B8;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.ig-procurement-search-results {
+    position: absolute;
+    z-index: 40;
+    top: calc(100% + 0.3rem);
+    left: 0;
+    right: 0;
+    max-height: 18rem;
+    overflow: auto;
+    border: 1px solid #E5E7EB;
+    border-radius: 0.9rem;
+    background: #fff;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+}
+
+.ig-procurement-search-results button {
+    display: block;
+    width: 100%;
+    padding: 0.72rem 0.85rem;
+    text-align: left;
+}
+
+.ig-procurement-search-results button:hover {
+    background: #FFFDF7;
+}
+
+.ig-procurement-search-results strong {
+    display: block;
+    color: #0F172A;
+    font-size: 0.86rem;
+}
+
+.ig-procurement-search-results span,
+.ig-procurement-search-results__empty {
+    display: block;
+    color: #64748B;
+    font-size: 0.76rem;
+    font-weight: 650;
+}
+
+.ig-procurement-conversion-preview {
+    display: grid;
+    align-content: center;
+    gap: 0.25rem;
+    border: 1px solid #BBF7D0;
+    border-radius: 0.9rem;
+    background: #F0FDF4;
+    padding: 0.85rem 1rem;
+}
+
+.ig-procurement-conversion-preview span {
+    color: #15803D;
+    font-size: 0.75rem;
+    font-weight: 850;
+}
+
+.ig-procurement-conversion-preview strong {
+    color: #14532D;
+    font-size: 0.96rem;
+    font-weight: 900;
+}
+
+.ig-procurement-conversion-preview small {
+    color: #166534;
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.ig-procurement-add-row {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1rem;
+}
+
+.ig-procurement-add-button,
+.ig-procurement-save-button,
+.ig-procurement-back-button,
+.ig-procurement-clear-button,
+.ig-procurement-draft-item__actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.85rem;
+    font-size: 0.84rem;
+    font-weight: 850;
+    transition: background-color 140ms ease, border-color 140ms ease, transform 140ms ease;
+}
+
+.ig-procurement-add-button {
+    gap: 0.45rem;
+    background: #16A34A;
+    padding: 0.72rem 1rem;
+    color: #fff;
+}
+
+.ig-procurement-add-button .fi-icon {
+    width: 1rem;
+    height: 1rem;
+}
+
+.ig-procurement-add-button:hover {
+    background: #15803D;
+}
+
+.ig-procurement-clear-button {
+    border: 1px solid #E5E7EB;
+    background: #fff;
+    padding: 0.45rem 0.7rem;
+    color: #64748B;
+}
+
+.ig-procurement-draft-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.ig-procurement-draft-item {
+    display: grid;
+    grid-template-columns: minmax(14rem, 1.4fr) repeat(3, minmax(8rem, 0.7fr)) auto;
+    gap: 0.85rem;
+    align-items: center;
+    border: 1px solid #E5E7EB;
+    border-radius: 1rem;
+    background: #fff;
+    padding: 0.9rem;
+}
+
+.ig-procurement-draft-item__main h3 {
+    margin: 0;
+    color: #0F172A;
+    font-size: 0.92rem;
+    font-weight: 900;
+}
+
+.ig-procurement-draft-item__main p,
+.ig-procurement-draft-item__metric span {
+    margin: 0.18rem 0 0;
+    color: #64748B;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.ig-procurement-invalid-badge {
+    display: inline-flex;
+    width: max-content;
+    margin-top: 0.45rem;
+    border: 1px solid #FECACA;
+    border-radius: 999px;
+    background: #FEF2F2;
+    padding: 0.25rem 0.55rem;
+    color: #DC2626;
+    font-size: 0.7rem;
+    font-weight: 850;
+}
+
+.ig-procurement-draft-item__metric strong {
+    display: block;
+    margin-top: 0.2rem;
+    color: #0F172A;
+    font-size: 0.86rem;
+    font-weight: 900;
+}
+
+.ig-procurement-draft-item__actions {
+    display: inline-flex;
+    gap: 0.45rem;
+}
+
+.ig-procurement-draft-item__actions button {
+    border: 1px solid #E5E7EB;
+    background: #fff;
+    padding: 0.48rem 0.65rem;
+    color: #475569;
+}
+
+.ig-procurement-draft-item__actions button:hover {
+    background: #F8FAFC;
+}
+
+.ig-procurement-draft-item__actions .is-danger {
+    border-color: #FECACA;
+    background: #FEF2F2;
+    color: #DC2626;
+}
+
+.ig-procurement-empty {
+    display: grid;
+    justify-items: center;
+    gap: 0.45rem;
+    border: 1px dashed #CBD5E1;
+    border-radius: 1rem;
+    background: #F8FAFC;
+    padding: 2rem 1rem;
+    text-align: center;
+}
+
+.ig-procurement-empty .fi-icon {
+    width: 2.2rem;
+    height: 2.2rem;
+    color: #B88A2F;
+}
+
+.ig-procurement-empty h3 {
+    margin: 0;
+    color: #0F172A;
+    font-size: 0.96rem;
+    font-weight: 900;
+}
+
+.ig-procurement-empty p {
+    margin: 0;
+    color: #64748B;
+    font-size: 0.84rem;
+}
+
+.ig-procurement-summary {
+    position: sticky;
+    top: 5.25rem;
+}
+
+.ig-procurement-summary-card {
+    display: grid;
+    gap: 1rem;
+    padding: 1.25rem;
+}
+
+.ig-procurement-summary-card dl {
+    display: grid;
+    gap: 0.58rem;
+}
+
+.ig-procurement-summary-card dl div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-bottom: 1px solid #F1F5F9;
+    padding-bottom: 0.58rem;
+}
+
+.ig-procurement-summary-card dt {
+    color: #64748B;
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.ig-procurement-summary-card dd {
+    margin: 0;
+    color: #0F172A;
+    font-size: 0.84rem;
+    font-weight: 900;
+    text-align: right;
+}
+
+.ig-procurement-summary-card__info,
+.ig-procurement-summary-card__warning {
+    border-radius: 0.85rem;
+    padding: 0.78rem;
+    font-size: 0.8rem;
+    font-weight: 750;
+    line-height: 1.45;
+}
+
+.ig-procurement-summary-card__info {
+    border: 1px solid #BFDBFE;
+    background: #EFF6FF;
+    color: #1D4ED8;
+}
+
+.ig-procurement-summary-card__warning {
+    border: 1px solid #FDE68A;
+    background: #FFFBEB;
+    color: #92400E;
+}
+
+.ig-procurement-save-button {
+    width: 100%;
+    min-height: 2.85rem;
+    background: #B88A2F;
+    color: #fff;
+}
+
+.ig-procurement-save-button:hover {
+    background: #9A7227;
+}
+
+.ig-procurement-save-button:disabled {
+    cursor: not-allowed;
+    background: #CBD5E1;
+    color: #64748B;
+}
+
+.ig-procurement-back-button {
+    width: 100%;
+    min-height: 2.65rem;
+    border: 1px solid #E5E7EB;
+    background: #fff;
+    color: #475569;
+    text-decoration: none;
+}
+
+@media (hover: hover) {
+    .ig-procurement-add-button:hover,
+    .ig-procurement-save-button:hover,
+    .ig-procurement-draft-item__actions button:hover {
+        transform: translateY(-1px);
+    }
+}
+
+@media (max-width: 1180px) {
+    .ig-procurement-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .ig-procurement-summary {
+        position: static;
+    }
+
+    .ig-procurement-draft-item {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+@media (max-width: 820px) {
+    .ig-procurement-steps,
+    .ig-procurement-info-grid,
+    .ig-procurement-item-grid,
+    .ig-procurement-qty-grid,
+    .ig-procurement-price-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .ig-procurement-draft-item {
+        grid-template-columns: 1fr;
+    }
+
+    .ig-procurement-draft-item__actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 640px) {
+    .ig-procurement-hero,
+    .ig-procurement-card,
+    .ig-procurement-summary-card {
+        padding: 1rem;
+    }
+
+    .ig-procurement-hero__title {
+        flex-direction: column;
+    }
+
+    .ig-procurement-hero h1 {
+        font-size: 1.38rem;
+    }
+}

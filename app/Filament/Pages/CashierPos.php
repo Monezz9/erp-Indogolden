@@ -15,6 +15,7 @@ use App\Services\BranchSaleService;
 use BackedEnum;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Support\Enums\Width;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +27,8 @@ class CashierPos extends Page
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-computer-desktop';
 
     protected string $view = 'filament.pages.cashier-pos';
+
+    protected Width|string|null $maxContentWidth = Width::Full;
 
     protected static ?string $title = 'KASIR';
 
@@ -57,6 +60,10 @@ class CashierPos extends Page
     public string $brothType = 'kuah';
 
     public int $spiceLevel = 0;
+
+    public string $tasteType = 'asin_gurih';
+
+    public string $eggChoice = 'tidak_pakai';
 
     public ?string $notes = null;
 
@@ -125,6 +132,38 @@ class CashierPos extends Page
         $this->qty = 0;
     }
 
+    public function selectItem(int $itemId): void
+    {
+        $this->reset(['selectedDrinkItemId', 'drinkUnitId']);
+        $this->drinkQty = 0;
+        $this->drinkUnitPrice = 0;
+        $this->selectedItemId = $itemId;
+        $this->updatedSelectedItemId($itemId);
+    }
+
+    public function addMenuItemToCart(int $itemId): void
+    {
+        $item = Item::query()
+            ->with('defaultUnit:id,code,name')
+            ->where('is_active', true)
+            ->find($itemId);
+
+        if (! $item || ! $item->default_unit_id) {
+            Notification::make()->title('Barang belum memiliki satuan default')->danger()->send();
+
+            return;
+        }
+
+        $this->reset(['selectedDrinkItemId', 'drinkUnitId']);
+        $this->drinkQty = 0;
+        $this->drinkUnitPrice = 0;
+        $this->selectedItemId = $item->id;
+        $this->unitId = $item->default_unit_id;
+        $this->unitPrice = (float) ($item->selling_price ?? 0);
+
+        $this->addCartLine($item, 1, $this->unitPrice);
+    }
+
     public function updatedBranchId(): void
     {
         $this->saleNumber = $this->nextSaleNumber();
@@ -151,6 +190,38 @@ class CashierPos extends Page
         $this->drinkUnitId = $item?->default_unit_id;
         $this->drinkUnitPrice = (float) ($item?->selling_price ?? 0);
         $this->drinkQty = 0;
+    }
+
+    public function selectDrink(int $itemId): void
+    {
+        $this->reset(['selectedItemId', 'unitId']);
+        $this->qty = 0;
+        $this->unitPrice = 0;
+        $this->selectedDrinkItemId = $itemId;
+        $this->updatedSelectedDrinkItemId($itemId);
+    }
+
+    public function addDrinkItemToCart(int $itemId): void
+    {
+        $item = Item::query()
+            ->with('defaultUnit:id,code,name')
+            ->where('is_active', true)
+            ->find($itemId);
+
+        if (! $item || ! $item->default_unit_id) {
+            Notification::make()->title('Minuman belum memiliki satuan default')->danger()->send();
+
+            return;
+        }
+
+        $this->reset(['selectedItemId', 'unitId']);
+        $this->qty = 0;
+        $this->unitPrice = 0;
+        $this->selectedDrinkItemId = $item->id;
+        $this->drinkUnitId = $item->default_unit_id;
+        $this->drinkUnitPrice = (float) ($item->selling_price ?? 0);
+
+        $this->addCartLine($item, 1, $this->drinkUnitPrice);
     }
 
     public function addItem(): void
@@ -184,18 +255,7 @@ class CashierPos extends Page
             return;
         }
 
-        $lineTotal = $this->qty * $this->unitPrice;
-
-        $this->cart[] = [
-            'item_id' => $item->id,
-            'unit_id' => $this->unitId ?: $item->default_unit_id,
-            'sku' => $item->sku,
-            'name' => $item->name,
-            'unit_name' => $item->defaultUnit?->code ?: ($item->defaultUnit?->name ?? '-'),
-            'qty' => $this->qty,
-            'unit_price' => $this->unitPrice,
-            'line_total' => $lineTotal,
-        ];
+        $this->addCartLine($item, $this->qty, $this->unitPrice);
 
         $this->reset(['selectedItemId', 'unitId']);
         $this->qty = 0;
@@ -233,18 +293,7 @@ class CashierPos extends Page
             return;
         }
 
-        $lineTotal = $this->drinkQty * $this->drinkUnitPrice;
-
-        $this->cart[] = [
-            'item_id' => $item->id,
-            'unit_id' => $this->drinkUnitId ?: $item->default_unit_id,
-            'sku' => $item->sku,
-            'name' => $item->name,
-            'unit_name' => $item->defaultUnit?->code ?: ($item->defaultUnit?->name ?? '-'),
-            'qty' => $this->drinkQty,
-            'unit_price' => $this->drinkUnitPrice,
-            'line_total' => $lineTotal,
-        ];
+        $this->addCartLine($item, $this->drinkQty, $this->drinkUnitPrice);
 
         $this->reset(['selectedDrinkItemId', 'drinkUnitId']);
         $this->drinkQty = 0;
@@ -258,6 +307,16 @@ class CashierPos extends Page
         $this->cart = array_values($this->cart);
     }
 
+    public function decrementCartItem(int $index): void
+    {
+        $this->adjustCartItemQty($index, -1);
+    }
+
+    public function incrementCartItem(int $index): void
+    {
+        $this->adjustCartItemQty($index, 1);
+    }
+
     public function clearCart(): void
     {
         $this->cart = [];
@@ -266,6 +325,8 @@ class CashierPos extends Page
         $this->notes = null;
         $this->brothType = 'kuah';
         $this->spiceLevel = 0;
+        $this->tasteType = 'asin_gurih';
+        $this->eggChoice = 'tidak_pakai';
     }
 
     public function checkout(BranchSaleService $service): void
@@ -397,9 +458,35 @@ class CashierPos extends Page
     public function brothTypeOptions(): array
     {
         return [
-            'kuah' => 'Kuah',
             'nyemek' => 'Nyemek',
-            'keringan' => 'Keringan',
+            'kuah' => 'Berkuah',
+        ];
+    }
+
+    public function spiceLevelOptions(): array
+    {
+        return [
+            0 => 'Zero',
+            1 => 'Mild',
+            2 => 'Medium',
+            3 => 'Hot',
+        ];
+    }
+
+    public function tasteTypeOptions(): array
+    {
+        return [
+            'asin_gurih' => 'Asin Gurih',
+            'gurih_manis' => 'Gurih Manis',
+        ];
+    }
+
+    public function eggChoiceOptions(): array
+    {
+        return [
+            'tidak_pakai' => 'Tidak Pakai',
+            'telur_orak_arik' => 'Telur Orak Arik',
+            'telur_utuh' => 'Telur Utuh',
         ];
     }
 
@@ -423,6 +510,22 @@ class CashierPos extends Page
         return Item::query()
             ->with(['category:id,name,slug,category_type', 'defaultUnit:id,code,name'])
             ->find($this->selectedDrinkItemId);
+    }
+
+    /**
+     * @return Collection<int, Item>
+     */
+    public function menuItems(): Collection
+    {
+        return $this->branchStockItems(includeDrinks: false);
+    }
+
+    /**
+     * @return Collection<int, Item>
+     */
+    public function drinkItems(): Collection
+    {
+        return $this->branchStockItems(includeDrinks: true);
     }
 
     public function categoryShortLabel(?Item $item): string
@@ -515,11 +618,18 @@ class CashierPos extends Page
 
     protected function checkoutNotes(): string
     {
+        $custom = $this->currentSeblakCustom();
         $details = [
             'Kasir: '.($this->cashierName ?: '-'),
-            'Kuah: '.($this->brothTypeOptions()[$this->brothType] ?? $this->brothType),
-            'Level: '.$this->spiceLevel,
+            'Custom Seblak:',
+            'Kuah: '.$custom['Kuah'],
+            'Level: '.$custom['Level'],
+            'Rasa: '.$custom['Rasa'],
         ];
+
+        if (isset($custom['Telur'])) {
+            $details[] = 'Telur: '.$custom['Telur'];
+        }
 
         if (filled($this->notes)) {
             $details[] = 'Catatan: '.$this->notes;
@@ -528,10 +638,94 @@ class CashierPos extends Page
         return implode(PHP_EOL, $details);
     }
 
+    public function customSeblakSummary(): string
+    {
+        $custom = $this->currentSeblakCustom();
+
+        return implode(' • ', array_filter([
+            $custom['Kuah'],
+            $custom['Level'],
+            $custom['Rasa'],
+            $custom['Telur'] ?? null,
+        ]));
+    }
+
+    protected function addCartLine(Item $item, float $qty, float $unitPrice): void
+    {
+        foreach ($this->cart as $index => $line) {
+            if ((int) $line['item_id'] !== $item->id) {
+                continue;
+            }
+
+            $newQty = (float) $line['qty'] + $qty;
+            $this->cart[$index]['qty'] = $newQty;
+            $this->cart[$index]['line_total'] = $newQty * (float) $line['unit_price'];
+
+            return;
+        }
+
+        $this->cart[] = [
+            'item_id' => $item->id,
+            'unit_id' => $item->default_unit_id,
+            'sku' => $item->sku,
+            'name' => $item->name,
+            'unit_name' => $item->defaultUnit?->code ?: ($item->defaultUnit?->name ?? '-'),
+            'qty' => $qty,
+            'unit_price' => $unitPrice,
+            'line_total' => $qty * $unitPrice,
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function currentSeblakCustom(): array
+    {
+        $custom = [
+            'Kuah' => $this->brothTypeOptions()[$this->brothType] ?? $this->brothType,
+            'Level' => $this->spiceLevelOptions()[$this->spiceLevel] ?? (string) $this->spiceLevel,
+            'Rasa' => $this->tasteTypeOptions()[$this->tasteType] ?? $this->tasteType,
+        ];
+
+        if ($this->eggChoice !== 'tidak_pakai') {
+            $custom['Telur'] = str_replace('Telur ', '', $this->eggChoiceOptions()[$this->eggChoice] ?? $this->eggChoice);
+        }
+
+        if (filled($this->notes)) {
+            $custom['Catatan'] = (string) $this->notes;
+        }
+
+        return $custom;
+    }
+
+    protected function adjustCartItemQty(int $index, float $delta): void
+    {
+        if (! isset($this->cart[$index])) {
+            return;
+        }
+
+        $qty = max(1, ((float) $this->cart[$index]['qty']) + $delta);
+
+        $this->cart[$index]['qty'] = $qty;
+        $this->cart[$index]['line_total'] = $qty * (float) $this->cart[$index]['unit_price'];
+    }
+
     protected function branchStockItemOptions(bool $includeDrinks): array
     {
+        return $this->branchStockItems($includeDrinks)
+            ->mapWithKeys(fn (Item $item): array => [
+                $item->id => $item->name,
+            ])
+            ->all();
+    }
+
+    /**
+     * @return Collection<int, Item>
+     */
+    protected function branchStockItems(bool $includeDrinks): Collection
+    {
         if (! $this->branchId) {
-            return [];
+            return collect();
         }
 
         $stageIds = $this->saleStageIds();
@@ -589,12 +783,8 @@ class CashierPos extends Page
                     });
             })
             ->orderBy('name')
-            ->with('category:id,name,category_type')
-            ->get(['id', 'sku', 'name', 'item_category_id'])
-            ->mapWithKeys(fn (Item $item): array => [
-                $item->id => $item->name,
-            ])
-            ->all();
+            ->with(['category:id,name,category_type', 'defaultUnit:id,code,name'])
+            ->get(['id', 'sku', 'name', 'item_category_id', 'default_unit_id', 'selling_price']);
     }
 
     /**

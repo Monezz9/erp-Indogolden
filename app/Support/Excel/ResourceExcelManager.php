@@ -6,6 +6,8 @@ use App\Enums\UserRole;
 use App\Exports\StyledArrayExport;
 use App\Imports\HeadingRowsImport;
 use App\Models\BranchSale;
+use App\Models\FinanceExpense;
+use App\Models\FinanceIncome;
 use App\Models\ImportLog;
 use App\Models\StockMovement;
 use App\Models\Transfer;
@@ -123,6 +125,8 @@ class ResourceExcelManager
 
                     continue;
                 }
+
+                $this->validatePayload($modelClass, $payload);
 
                 $identifier = $this->resolveIdentifier($payload, $identifierPriority);
 
@@ -262,6 +266,21 @@ class ResourceExcelManager
         }
 
         return $normalized;
+    }
+
+    /**
+     * @param  class-string<Model>  $modelClass
+     * @param  array<string, mixed>  $payload
+     */
+    protected function validatePayload(string $modelClass, array $payload): void
+    {
+        if (! in_array($modelClass, [FinanceIncome::class, FinanceExpense::class], true)) {
+            return;
+        }
+
+        if (! array_key_exists('amount', $payload) || (float) $payload['amount'] <= 0) {
+            throw new \InvalidArgumentException('Nominal finance harus lebih besar dari 0.');
+        }
     }
 
     /**

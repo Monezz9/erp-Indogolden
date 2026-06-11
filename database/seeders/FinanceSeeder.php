@@ -17,9 +17,14 @@ class FinanceSeeder extends Seeder
     public function run(): void
     {
         foreach ([
-            ['code' => 'REV-SALES', 'name' => 'Sales Revenue', 'type' => 'income', 'is_cogs' => false],
-            ['code' => 'EXP-COGS', 'name' => 'COGS', 'type' => 'expense', 'is_cogs' => true],
-            ['code' => 'EXP-OPEX', 'name' => 'Operational Expense', 'type' => 'expense', 'is_cogs' => false],
+            ['code' => 'REV-SALES', 'name' => 'Pendapatan Penjualan', 'type' => 'income', 'is_cogs' => false],
+            ['code' => 'REV-OTHER', 'name' => 'Pendapatan Lain-lain', 'type' => 'income', 'is_cogs' => false],
+            ['code' => 'CASH-BANK-APP', 'name' => 'Kas / Bank / Aplikasi', 'type' => 'income', 'is_cogs' => false],
+            ['code' => 'EXP-COGS', 'name' => 'Logistik / COGS', 'type' => 'expense', 'is_cogs' => true],
+            ['code' => 'EXP-LOGISTIC', 'name' => 'Logistik', 'type' => 'expense', 'is_cogs' => true],
+            ['code' => 'EXP-OPEX', 'name' => 'OPEX', 'type' => 'expense', 'is_cogs' => false],
+            ['code' => 'EXP-NOPEX', 'name' => 'NOPEX', 'type' => 'expense', 'is_cogs' => false],
+            ['code' => 'EXP-OTHER', 'name' => 'Lain-lain', 'type' => 'expense', 'is_cogs' => false],
         ] as $category) {
             FinanceCategory::query()->updateOrCreate(
                 ['code' => $category['code']],

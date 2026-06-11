@@ -2,7 +2,6 @@
 
 namespace App\Policies;
 
-use App\Enums\UserRole;
 use App\Models\User;
 use App\Policies\Concerns\AuthorizesByRole;
 
@@ -15,7 +14,7 @@ class UserPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $this->hasRole($user, [UserRole::Owner, UserRole::HeadLogistics]);
+        return $this->isOwner($user);
     }
 
     /**
@@ -23,11 +22,7 @@ class UserPolicy
      */
     public function view(User $user, User $model): bool
     {
-        if ($this->isOwner($user)) {
-            return true;
-        }
-
-        return (int) $user->id === (int) $model->id;
+        return $this->isOwner($user);
     }
 
     /**
@@ -43,7 +38,7 @@ class UserPolicy
      */
     public function update(User $user, User $model): bool
     {
-        return $this->isOwner($user) || (int) $user->id === (int) $model->id;
+        return $this->isOwner($user);
     }
 
     /**
