@@ -13,11 +13,25 @@ class ListBranchRequests extends ListRecords
 
     protected static string $resource = BranchRequestResource::class;
 
+    public function getTitle(): string
+    {
+        return 'Request Barang Cabang';
+    }
+
+    public function getSubheading(): ?string
+    {
+        return 'Ajukan kebutuhan barang jadi dari cabang ke gudang pusat.';
+    }
+
     protected function getHeaderActions(): array
     {
         return [
-            CreateAction::make(),
+            CreateAction::make()
+                ->label('Buat Request')
+                ->icon('heroicon-o-plus')
+                ->color('danger'),
             ...$this->getExcelHeaderActions(),
         ];
     }
+
 }

@@ -692,7 +692,13 @@ class ProcurementRequestWorkspace extends Page
             ->whereHas('category', function (Builder $query): void {
                 $query
                     ->whereIn('slug', ['raw-material', 'srm'])
-                    ->orWhereIn('name', ['Raw Material', 'SRM']);
+                    ->orWhereIn('name', ['Raw Material', 'SRM'])
+                    ->orWhere(function (Builder $query): void {
+                        $query
+                            ->where('category_type', 'raw_material')
+                            ->where('slug', '!=', 'raw-clean')
+                            ->where('name', '!=', 'Raw Clean');
+                    });
             })
             ->orWhereHas('defaultStage', function (Builder $query): void {
                 $query->whereIn('code', ['raw_dirty', 'srm']);
@@ -701,10 +707,15 @@ class ProcurementRequestWorkspace extends Page
 
     protected function isAllowedProcurementItem(Item $item): bool
     {
-        $item->loadMissing(['category:id,name,slug', 'defaultStage:id,code']);
+        $item->loadMissing(['category:id,name,slug,category_type', 'defaultStage:id,code']);
 
         return in_array($item->category?->slug, ['raw-material', 'srm'], true)
             || in_array($item->category?->name, ['Raw Material', 'SRM'], true)
+            || (
+                $item->category?->category_type === 'raw_material'
+                && $item->category?->slug !== 'raw-clean'
+                && $item->category?->name !== 'Raw Clean'
+            )
             || in_array($item->defaultStage?->code, ['raw_dirty', 'srm'], true);
     }
 
@@ -722,7 +733,7 @@ class ProcurementRequestWorkspace extends Page
     protected function validateCartItems(): void
     {
         $items = Item::query()
-            ->with(['category:id,name,slug', 'defaultStage:id,code'])
+            ->with(['category:id,name,slug,category_type', 'defaultStage:id,code'])
             ->whereIn('id', array_column($this->cart, 'item_id'))
             ->get()
             ->keyBy('id');
