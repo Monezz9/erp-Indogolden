@@ -8,7 +8,7 @@ class InventoryLabels
     {
         return [
             'raw_dirty' => 'Stok Mentah Kotor',
-            'raw_clean' => 'Stok Mentah Bersih',
+            'raw_clean' => 'SRM',
             'wip' => 'WIP - Proses Produksi',
             'srm' => 'SRM',
             'finished_goods' => 'FG - Barang Jadi',
@@ -34,7 +34,7 @@ class InventoryLabels
     {
         return [
             'material' => 'RM',
-            'premix' => 'Premix',
+            'premix' => 'SRM',
             'semi_finished' => 'SRM',
             'product' => 'FG',
             'packaging' => 'MRO',

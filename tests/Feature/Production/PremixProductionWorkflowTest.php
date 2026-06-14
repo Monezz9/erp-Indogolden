@@ -30,22 +30,20 @@ class PremixProductionWorkflowTest extends TestCase
             'is_active' => true,
         ]);
 
-        [$rawStage, $mroStage, $fgStage] = $this->createStages();
+        [$srmStage, $fgStage] = $this->createStages();
         [$gram, $pcs] = $this->createUnits();
-        [$rawCategory, $mroCategory, $fgCategory] = $this->createCategories();
+        [$srmCategory, $fgCategory] = $this->createCategories();
 
         $ingredients = [
-            'PENYEDAP' => $this->createItem('RM-PENYEDAP-T', 'Penyedap', $rawCategory, $gram, $rawStage, 'material', 89, 80),
-            'MICIN' => $this->createItem('RM-MICIN-T', 'Micin', $rawCategory, $gram, $rawStage, 'material', 52, 22),
-            'GARAM' => $this->createItem('RM-GARAM-T', 'Garam', $rawCategory, $gram, $rawStage, 'material', 14, 18),
-            'LADA' => $this->createItem('RM-LADA-T', 'Lada', $rawCategory, $gram, $rawStage, 'material', 170, 10),
-            'GULA' => $this->createItem('RM-GULA-T', 'Gula', $rawCategory, $gram, $rawStage, 'material', 16.7, 26),
-            'PLASTIK' => $this->createItem('MRO-PLASTIK-T', 'Plastik Premix', $mroCategory, $pcs, $mroStage, 'packaging', 32, 1),
+            'PENYEDAP' => $this->createItem('SRM-PENYEDAP-T', 'Penyedap', $srmCategory, $gram, $srmStage, 'semi_finished', 89, 80),
+            'MICIN' => $this->createItem('SRM-MICIN-T', 'Micin', $srmCategory, $gram, $srmStage, 'semi_finished', 52, 22),
+            'GARAM' => $this->createItem('SRM-GARAM-T', 'Garam', $srmCategory, $gram, $srmStage, 'semi_finished', 14, 18),
+            'LADA' => $this->createItem('SRM-LADA-T', 'Lada', $srmCategory, $gram, $srmStage, 'semi_finished', 170, 10),
+            'GULA' => $this->createItem('SRM-GULA-T', 'Gula', $srmCategory, $gram, $srmStage, 'semi_finished', 16.7, 26),
         ];
 
-        foreach ($ingredients as $key => $ingredient) {
-            $qty = $key === 'PLASTIK' ? 100 : 10000;
-            $this->seedBalance($ingredient['item'], $ingredient['stage'], $warehouse, $qty, $ingredient['cost']);
+        foreach ($ingredients as $ingredient) {
+            $this->seedBalance($ingredient['item'], $ingredient['stage'], $warehouse, 10000, $ingredient['cost']);
         }
 
         $premix = $this->createItem('FG-PREMIX-T', 'Premix', $fgCategory, $pcs, $fgStage, 'product', 0, 1)['item'];
@@ -77,8 +75,8 @@ class PremixProductionWorkflowTest extends TestCase
 
         $this->assertSame(ProductionOrderStatus::Completed, $order->status);
         $this->assertSame(10.0, (float) $order->actual_qty);
-        $this->assertSame(106822.0, round((float) $order->total_input_cost, 2));
-        $this->assertSame(10682.2, round((float) $order->outputs->first()->unit_cost, 2));
+        $this->assertSame(106502.0, round((float) $order->total_input_cost, 2));
+        $this->assertSame(10650.2, round((float) $order->outputs->first()->unit_cost, 2));
 
         $fgBalance = StockBalance::query()
             ->where('item_id', $premix->id)
@@ -87,7 +85,7 @@ class PremixProductionWorkflowTest extends TestCase
             ->firstOrFail();
 
         $this->assertSame(10.0, (float) $fgBalance->qty_on_hand);
-        $this->assertSame(10682.2, round((float) $fgBalance->avg_cost, 2));
+        $this->assertSame(10650.2, round((float) $fgBalance->avg_cost, 2));
     }
 
     protected function createUserWithRole(): User
@@ -110,14 +108,13 @@ class PremixProductionWorkflowTest extends TestCase
     }
 
     /**
-     * @return array{ItemStage, ItemStage, ItemStage}
+     * @return array{ItemStage, ItemStage}
      */
     protected function createStages(): array
     {
         return [
-            ItemStage::query()->updateOrCreate(['code' => ItemStageCode::RawClean->value], ['name' => 'Raw Clean', 'sequence' => 1, 'is_active' => true]),
-            ItemStage::query()->updateOrCreate(['code' => ItemStageCode::Mro->value], ['name' => 'MRO', 'sequence' => 2, 'is_active' => true]),
-            ItemStage::query()->updateOrCreate(['code' => ItemStageCode::FinishedGoods->value], ['name' => 'Finished Goods', 'sequence' => 3, 'is_active' => true]),
+            ItemStage::query()->updateOrCreate(['code' => ItemStageCode::Srm->value], ['name' => 'SRM', 'sequence' => 1, 'is_active' => true]),
+            ItemStage::query()->updateOrCreate(['code' => ItemStageCode::FinishedGoods->value], ['name' => 'Finished Goods', 'sequence' => 2, 'is_active' => true]),
         ];
     }
 
@@ -133,14 +130,13 @@ class PremixProductionWorkflowTest extends TestCase
     }
 
     /**
-     * @return array{ItemCategory, ItemCategory, ItemCategory}
+     * @return array{ItemCategory, ItemCategory}
      */
     protected function createCategories(): array
     {
         return [
-            ItemCategory::query()->create(['slug' => 'raw-test', 'name' => 'Raw Test', 'category_type' => 'raw_material', 'is_active' => true]),
-            ItemCategory::query()->create(['slug' => 'mro-test', 'name' => 'MRO Test', 'category_type' => 'mro', 'is_active' => true]),
-            ItemCategory::query()->create(['slug' => 'fg-test', 'name' => 'FG Test', 'category_type' => 'finished_goods', 'is_active' => true]),
+            ItemCategory::query()->updateOrCreate(['slug' => 'srm'], ['name' => 'SRM', 'category_type' => 'wip', 'is_active' => true]),
+            ItemCategory::query()->updateOrCreate(['slug' => 'fg-test'], ['name' => 'FG Test', 'category_type' => 'finished_goods', 'is_active' => true]),
         ];
     }
 

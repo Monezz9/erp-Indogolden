@@ -120,7 +120,10 @@ class WorkInProcessWorkspace extends Page
     {
         return Item::query()
             ->where('is_active', true)
-            ->where('item_type', '!=', 'premix')
+            ->whereHas('category', function ($query): void {
+                $query->whereIn('slug', ['srm', 'raw-clean', 'premix'])
+                    ->orWhereRaw('LOWER(name) IN (?, ?, ?)', ['srm', 'raw clean', 'premix']);
+            })
             ->whereHas('defaultStage', fn ($stage) => $stage->whereIn('code', $this->inputStageCodes()))
             ->whereHas('stockBalances', function ($query): void {
                 $query->where('qty_on_hand', '>', 0)
@@ -220,8 +223,6 @@ class WorkInProcessWorkspace extends Page
     {
         return [
             ItemStageCode::Srm->value,
-            ItemStageCode::RawClean->value,
-            ItemStageCode::Wip->value,
         ];
     }
 }

@@ -49,9 +49,9 @@ class ItemInventoryOverview extends StatsOverviewWidget
                 'tone' => 'raw',
             ],
             [
-                'label' => 'Raw Clean',
-                'value' => (string) $this->stageCount(ItemStageCode::RawClean),
-                'description' => 'Siap diproses',
+                'label' => 'SRM',
+                'value' => (string) $this->srmCount(),
+                'description' => 'Input produksi',
                 'icon' => 'heroicon-o-sparkles',
                 'tone' => 'clean',
             ],
@@ -80,8 +80,8 @@ class ItemInventoryOverview extends StatsOverviewWidget
                 ->description('Bahan baku aktif')
                 ->icon('heroicon-o-beaker')
                 ->color('warning'),
-            Stat::make('Raw Clean', (string) $this->stageCount(ItemStageCode::RawClean))
-                ->description('RC aktif siap diproses')
+            Stat::make('SRM', (string) $this->srmCount())
+                ->description('SRM aktif siap produksi')
                 ->icon('heroicon-o-sparkles')
                 ->color('info'),
             Stat::make('Stok Kritis', (string) $this->criticalStockCount())
@@ -107,6 +107,17 @@ class ItemInventoryOverview extends StatsOverviewWidget
                 'defaultStage',
                 fn (Builder $query): Builder => $query->where('code', ItemStageCode::RawDirty->value),
             )
+            ->count();
+    }
+
+    protected function srmCount(): int
+    {
+        return Item::query()
+            ->where('is_active', true)
+            ->whereHas('category', function (Builder $query): void {
+                $query->whereIn('slug', ['srm', 'raw-clean', 'premix'])
+                    ->orWhereRaw('LOWER(name) IN (?, ?, ?)', ['srm', 'raw clean', 'premix']);
+            })
             ->count();
     }
 

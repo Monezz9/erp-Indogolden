@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Items\Pages;
 
-use App\Enums\ItemStageCode;
 use App\Filament\Concerns\HasResourceExcelActions;
 use App\Filament\Resources\Items\ItemResource;
 use App\Filament\Resources\Items\Widgets\ItemInventoryOverview;
@@ -78,40 +77,28 @@ class ListItems extends ListRecords
     {
         return [
             'all' => Tab::make('Semua'),
-            'fg' => $this->stageTab('FG', ItemStageCode::FinishedGoods),
-            'rm' => $this->stageTab('RM', ItemStageCode::RawDirty),
-            'rc' => $this->stageTab('RC', ItemStageCode::RawClean),
-            'srm' => $this->stageTab('SRM', ItemStageCode::Srm),
-            'premix' => Tab::make('Premix')
-                ->modifyQueryUsing(
-                    fn (Builder $query): Builder => $query->where('item_type', 'premix'),
-                ),
+            'rm' => $this->categoryTab('RM', ['raw-material'], ['raw material', 'rm']),
+            'srm' => $this->categoryTab('SRM', ['srm', 'raw-clean', 'premix'], ['srm', 'raw clean', 'premix']),
+            'fg' => $this->categoryTab('FG', ['finished-goods'], ['finished goods', 'fg']),
         ];
     }
 
-    protected function stageTab(string $label, ItemStageCode $stage): Tab
+    /**
+     * @param  array<int, string>  $slugs
+     * @param  array<int, string>  $names
+     */
+    protected function categoryTab(string $label, array $slugs, array $names): Tab
     {
         return Tab::make($label)
             ->modifyQueryUsing(
                 fn (Builder $query): Builder => $query
-                    ->where('item_type', '!=', 'premix')
-                    ->where(function (Builder $query) use ($stage): void {
-                        $query
-                            ->whereHas(
-                                'defaultStage',
-                                fn (Builder $stageQuery): Builder => $stageQuery->where('code', $stage->value),
-                            )
-                            ->orWhereHas(
-                                'stockBalances',
-                                fn (Builder $balanceQuery): Builder => $balanceQuery
-                                    ->where('qty_on_hand', '>', 0)
-                                    ->whereHas('stage', fn (Builder $stageQuery): Builder => $stageQuery->where('code', $stage->value)),
-                            );
+                    ->whereHas('category', function (Builder $query) use ($slugs, $names): void {
+                        $query->whereIn('slug', $slugs)
+                            ->orWhereIn('slug', array_map(fn (string $slug): string => str_replace(' ', '-', $slug), $names))
+                            ->orWhereIn('category_type', $slugs)
+                            ->orWhereRaw('LOWER(name) IN ('.implode(',', array_fill(0, count($names), '?')).')', $names);
                     })
-                    ->withSum([
-                        'stockBalances as stock_qty' => fn (Builder $balanceQuery): Builder => $balanceQuery
-                            ->whereHas('stage', fn (Builder $stageQuery): Builder => $stageQuery->where('code', $stage->value)),
-                    ], 'qty_on_hand'),
+                    ->withSum('stockBalances as stock_qty', 'qty_on_hand'),
             );
     }
 }

@@ -13,6 +13,7 @@ use App\Models\WorkInProcess;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use Illuminate\Validation\ValidationException;
 
 class WorkInProcessService
 {
@@ -43,12 +44,16 @@ class WorkInProcessService
         return DB::transaction(function () use ($data, $actor, $inputQty, $standardConversion, $actualOutputQty, $overheadCost): WorkInProcess {
             $inputStageIds = $this->stageIds([
                 ItemStageCode::Srm,
-                ItemStageCode::RawClean,
-                ItemStageCode::Wip,
             ]);
             $finishedGoodsStageId = $this->stageId(ItemStageCode::FinishedGoods);
-            $inputItem = Item::query()->with('defaultUnit')->findOrFail((int) $data['input_item_id']);
+            $inputItem = Item::query()->with(['category', 'defaultUnit'])->findOrFail((int) $data['input_item_id']);
             $outputItem = Item::query()->with('defaultUnit')->findOrFail((int) $data['output_item_id']);
+
+            if (! $this->isSrmItem($inputItem)) {
+                throw ValidationException::withMessages([
+                    'input_item_id' => 'Input produksi harus barang kategori SRM.',
+                ]);
+            }
             $warehouseId = (int) $data['warehouse_id'];
             $preferredInputStageId = in_array((int) $inputItem->default_stage_id, $inputStageIds, true)
                 ? (int) $inputItem->default_stage_id
@@ -198,5 +203,15 @@ class WorkInProcessService
         $next = is_string($last) ? ((int) Str::afterLast($last, '-')) + 1 : 1;
 
         return sprintf('%s-%04d', $prefix, $next);
+    }
+
+    protected function isSrmItem(Item $item): bool
+    {
+        $category = $item->category;
+        $name = str($category?->name ?? '')->lower()->squish()->toString();
+        $slug = str($category?->slug ?? '')->lower()->squish()->toString();
+
+        return in_array($slug, ['srm', 'raw-clean', 'premix'], true)
+            || in_array($name, ['srm', 'raw clean', 'premix'], true);
     }
 }

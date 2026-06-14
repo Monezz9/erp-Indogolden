@@ -9,6 +9,7 @@ use App\Models\ProductionOrder;
 use App\Models\ProductionRecipe;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class ProductionService
@@ -37,6 +38,9 @@ class ProductionService
             'warehouse_id' => null,
             'created_by' => $creator->id,
         ]);
+
+        $recipe->loadMissing('ingredients.item.category');
+        $this->ensureRecipeInputsAreSrm($recipe);
 
         foreach ($recipe->ingredients as $ingredient) {
             $ratio = $targetQty / (float) $recipe->output_qty;
@@ -115,6 +119,7 @@ class ProductionService
 
         return DB::transaction(function () use ($order, $actor, $warehouseId) {
             $order->loadMissing('inputs.item.defaultStage', 'outputs.item.defaultStage');
+            $this->ensureOrderInputsAreSrm($order);
 
             $this->refreshInputCosts($order, $warehouseId);
 
@@ -230,5 +235,43 @@ class ProductionService
         });
 
         $order->load('inputs');
+    }
+
+    protected function ensureRecipeInputsAreSrm(ProductionRecipe $recipe): void
+    {
+        foreach ($recipe->ingredients as $ingredient) {
+            if ($this->isSrmItem($ingredient->item)) {
+                continue;
+            }
+
+            throw ValidationException::withMessages([
+                'ingredients' => 'Semua input produksi harus barang kategori SRM.',
+            ]);
+        }
+    }
+
+    protected function ensureOrderInputsAreSrm(ProductionOrder $order): void
+    {
+        $order->loadMissing('inputs.item.category');
+
+        foreach ($order->inputs as $input) {
+            if ($this->isSrmItem($input->item)) {
+                continue;
+            }
+
+            throw ValidationException::withMessages([
+                'inputs' => 'Semua input produksi harus barang kategori SRM.',
+            ]);
+        }
+    }
+
+    protected function isSrmItem($item): bool
+    {
+        $category = $item?->category;
+        $name = str($category?->name ?? '')->lower()->squish()->toString();
+        $slug = str($category?->slug ?? '')->lower()->squish()->toString();
+
+        return in_array($slug, ['srm', 'raw-clean', 'premix'], true)
+            || in_array($name, ['srm', 'raw clean', 'premix'], true);
     }
 }

@@ -28,10 +28,11 @@ class InventoryTransactionSeeder extends Seeder
         $whCandiPanggung = Warehouse::query()->where('code', 'WH-CPG')->firstOrFail();
 
         $stageRawDirty = ItemStage::query()->where('code', 'raw_dirty')->value('id');
-        $stageRawClean = ItemStage::query()->where('code', 'raw_clean')->value('id');
+        $stageSrm = ItemStage::query()->where('code', 'srm')->value('id');
         $stageFinished = ItemStage::query()->where('code', 'finished_goods')->value('id');
 
         $itemKencur = Item::query()->where('sku', 'RM-KENCUR')->firstOrFail();
+        $itemSrmKencur = Item::query()->where('sku', 'SRM-KENCUR')->firstOrFail();
         $itemRawit = Item::query()->where('sku', 'RM-RAWIT')->firstOrFail();
         $itemMinyak = Item::query()->where('sku', 'RM-MINYAK')->firstOrFail();
         $itemCup = Item::query()->where('sku', 'MRO-CUP')->firstOrFail();
@@ -74,7 +75,7 @@ class InventoryTransactionSeeder extends Seeder
                         'direction' => 'in',
                         'qty' => 30,
                         'unit_cost' => 19500,
-                        'to_stage_id' => $stageRawClean,
+                        'to_stage_id' => $stageSrm,
                         'to_warehouse_id' => $whProd->id,
                     ],
                 ],
@@ -93,12 +94,12 @@ class InventoryTransactionSeeder extends Seeder
                         'from_warehouse_id' => $whCentral->id,
                     ],
                     [
-                        'item_id' => $itemKencur->id,
+                        'item_id' => $itemSrmKencur->id,
                         'unit_id' => $unitKg->id,
                         'direction' => 'in',
                         'qty' => 19,
                         'unit_cost' => 50000,
-                        'to_stage_id' => $stageRawClean,
+                        'to_stage_id' => $stageSrm,
                         'to_warehouse_id' => $whProd->id,
                     ],
                 ],

@@ -103,6 +103,7 @@ class ProcurementRequestWorkspace extends Page
 
         try {
             $item = Item::query()->with('category')->findOrFail($this->itemId);
+            $categoryLabel = $this->procurementCategoryLabel($item);
 
             $this->ensureProcurementItemAllowed($item);
 
@@ -134,7 +135,7 @@ class ProcurementRequestWorkspace extends Page
                 'item_id' => $item->id,
                 'item_label' => trim(($item->sku ? $item->sku.' - ' : '').$item->name),
                 'item_name' => $item->name,
-                'item_kind' => $this->itemKind ?: $item->category?->name,
+                'item_kind' => $this->itemKind ?: $categoryLabel,
                 'unit_id' => $unitId,
                 'unit_label' => $unitOptions[$unitId] ?? '-',
                 'purchase_unit_id' => $purchaseUnitId,
@@ -145,7 +146,7 @@ class ProcurementRequestWorkspace extends Page
                 'line_total' => $this->lineTotal(),
                 'purchase_unit_cost' => $this->purchaseUnitCost(),
                 'unit_cost' => $this->baseUnitCost(),
-                'notes' => ($this->itemKind ?: $item->category?->name) ? 'Kategori: '.($this->itemKind ?: $item->category?->name) : null,
+                'notes' => ($this->itemKind ?: $categoryLabel) ? 'Kategori: '.($this->itemKind ?: $categoryLabel) : null,
             ];
 
             $this->resetLineInput();
@@ -455,7 +456,7 @@ class ProcurementRequestWorkspace extends Page
         $search = trim((string) $this->itemSearch);
 
         return Item::query()
-            ->with(['category:id,name,category_type', 'defaultStage:id,name,code', 'defaultUnit:id,code'])
+            ->with(['category:id,name,slug,category_type', 'defaultStage:id,name,code', 'defaultUnit:id,code'])
             ->withSum('stockBalances as current_stock', 'qty_on_hand')
             ->where('is_active', true)
             ->where(fn (Builder $query): Builder => $this->applyAllowedProcurementItemQuery($query))
@@ -469,7 +470,7 @@ class ProcurementRequestWorkspace extends Page
             ->map(fn (Item $item): array => [
                 'id' => $item->id,
                 'label' => $this->itemSearchLabel($item),
-                'category' => $item->category?->name ?? '-',
+                'category' => $this->procurementCategoryLabel($item),
                 'stock_qty' => (float) ($item->current_stock ?? 0),
                 'stock_unit' => $item->defaultUnit?->code ?? '-',
                 'hpp' => (float) ($item->latest_weighted_avg_cost ?? 0),
@@ -496,14 +497,16 @@ class ProcurementRequestWorkspace extends Page
         }
 
         return Item::query()
-            ->with(['category:id,name', 'defaultUnit:id,code'])
+            ->with(['category:id,name,slug,category_type', 'defaultUnit:id,code'])
             ->where(fn (Builder $query): Builder => $this->applyAllowedProcurementItemQuery($query))
             ->find($this->itemId);
     }
 
     public function selectedItemCategoryLabel(): string
     {
-        return $this->selectedItem()?->category?->name ?? '-';
+        $item = $this->selectedItem();
+
+        return $item ? $this->procurementCategoryLabel($item) : '-';
     }
 
     public function selectedStockUnitCode(): string
@@ -618,7 +621,7 @@ class ProcurementRequestWorkspace extends Page
         $this->purchaseUnitId = $this->defaultPurchaseUnitId($item);
         $this->conversionQty = $this->defaultConversionQty($this->purchaseUnitId, $this->unitId);
         $this->unitCost = (float) ($item?->purchase_price ?? 0);
-        $this->itemKind = $item?->category?->name;
+        $this->itemKind = $item ? $this->procurementCategoryLabel($item) : null;
 
         if ($syncSearch) {
             $this->itemSearch = $item ? $this->itemSearchLabel($item) : null;
@@ -634,7 +637,7 @@ class ProcurementRequestWorkspace extends Page
         }
 
         $exact = Item::query()
-            ->with(['category:id,name,category_type', 'defaultStage:id,name,code', 'defaultUnit:id,code'])
+            ->with(['category:id,name,slug,category_type', 'defaultStage:id,name,code', 'defaultUnit:id,code'])
             ->where('is_active', true)
             ->where(fn (Builder $query): Builder => $this->applyAllowedProcurementItemQuery($query))
             ->where(function ($query) use ($search): void {
@@ -648,7 +651,7 @@ class ProcurementRequestWorkspace extends Page
         }
 
         return Item::query()
-            ->with(['category:id,name,category_type', 'defaultStage:id,name,code', 'defaultUnit:id,code'])
+            ->with(['category:id,name,slug,category_type', 'defaultStage:id,name,code', 'defaultUnit:id,code'])
             ->where('is_active', true)
             ->where(fn (Builder $query): Builder => $this->applyAllowedProcurementItemQuery($query))
             ->where(fn (Builder $query): Builder => $this->applyItemSearchQuery($query, $search))
@@ -662,17 +665,15 @@ class ProcurementRequestWorkspace extends Page
         $needle = trim($search);
         $normalized = str($needle)->lower()->trim()->toString();
         $stageAliases = match ($normalized) {
-            'rm', 'raw material', 'raw_material', 'raw-material', 'raw', 'bahan baku' => ['raw_dirty', 'raw_clean'],
-            'rc', 'raw clean', 'clean' => ['raw_clean'],
-            'srm' => ['srm'],
+            'rm', 'raw material', 'raw_material', 'raw-material', 'raw', 'bahan baku' => ['raw_dirty'],
+            'rc', 'raw clean', 'clean', 'premix', 'srm' => ['srm'],
             'fg', 'finished goods' => ['finished_goods'],
             'operasional', 'operational', 'mro' => ['mro'],
-            'premix' => ['raw_clean'],
             default => [],
         };
         $categoryAliases = match ($normalized) {
             'rm', 'raw material', 'raw_material', 'raw-material', 'raw', 'bahan baku' => ['rm', 'raw material', 'raw_material', 'raw-material', 'bahan baku'],
-            'srm' => ['srm'],
+            'srm', 'rc', 'raw clean', 'premix' => ['srm', 'raw clean', 'raw-clean', 'premix'],
             'fg', 'finished goods', 'finished_goods', 'finished-goods' => ['fg', 'finished goods', 'finished_goods', 'finished-goods'],
             'operasional', 'operational', 'mro' => ['operasional', 'operational', 'mro'],
             default => [],
@@ -715,6 +716,9 @@ class ProcurementRequestWorkspace extends Page
             'raw_material',
             'raw-material',
             'srm',
+            'raw clean',
+            'raw-clean',
+            'premix',
             'fg',
             'finished goods',
             'finished_goods',
@@ -736,7 +740,7 @@ class ProcurementRequestWorkspace extends Page
                 });
             })
             ->orWhereHas('defaultStage', function (Builder $query): void {
-                $query->whereIn('code', ['raw_dirty', 'raw_clean', 'srm', 'finished_goods', 'mro']);
+                $query->whereIn('code', ['raw_dirty', 'srm', 'finished_goods', 'mro']);
             });
     }
 
@@ -758,6 +762,9 @@ class ProcurementRequestWorkspace extends Page
             'raw_material',
             'raw-material',
             'srm',
+            'raw clean',
+            'raw-clean',
+            'premix',
             'fg',
             'finished goods',
             'finished_goods',
@@ -768,7 +775,7 @@ class ProcurementRequestWorkspace extends Page
         ];
 
         return collect($categoryValues)->intersect($allowedCategories)->isNotEmpty()
-            || in_array($item->defaultStage?->code, ['raw_dirty', 'raw_clean', 'srm', 'finished_goods', 'mro'], true);
+            || in_array($item->defaultStage?->code, ['raw_dirty', 'srm', 'finished_goods', 'mro'], true);
     }
 
     protected function ensureProcurementItemAllowed(Item $item): void
@@ -804,6 +811,33 @@ class ProcurementRequestWorkspace extends Page
     protected function itemSearchLabel(Item $item): string
     {
         return trim(($item->sku ? $item->sku.' - ' : '').$item->name);
+    }
+
+    protected function procurementCategoryLabel(Item $item): string
+    {
+        $item->loadMissing('category');
+
+        $slug = str($item->category?->slug ?? '')->lower()->squish()->toString();
+        $name = str($item->category?->name ?? '')->lower()->squish()->toString();
+        $type = str($item->category?->category_type ?? '')->lower()->squish()->toString();
+
+        if (in_array($slug, ['srm', 'raw-clean', 'premix'], true) || in_array($name, ['srm', 'raw clean', 'premix'], true)) {
+            return 'SRM';
+        }
+
+        if (in_array($slug, ['raw-material'], true) || in_array($name, ['raw material', 'rm'], true) || $type === 'raw_material') {
+            return 'RM';
+        }
+
+        if (in_array($slug, ['finished-goods'], true) || in_array($name, ['finished goods', 'fg'], true) || $type === 'finished_goods') {
+            return 'FG';
+        }
+
+        if (in_array($slug, ['mro'], true) || in_array($name, ['mro', 'operasional', 'operational'], true) || $type === 'mro') {
+            return 'Operasional';
+        }
+
+        return $item->category?->name ?? '-';
     }
 
     protected function defaultPurchaseUnitId(?Item $item): ?int

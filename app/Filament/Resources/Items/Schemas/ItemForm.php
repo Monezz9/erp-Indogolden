@@ -15,6 +15,7 @@ use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Builder;
 
 class ItemForm
 {
@@ -48,7 +49,13 @@ class ItemForm
                                     ->maxLength(255),
                                 Select::make('item_category_id')
                                     ->label('Kategori Barang')
-                                    ->relationship('category', 'name')
+                                    ->relationship(
+                                        'category',
+                                        'name',
+                                        modifyQueryUsing: fn (Builder $query): Builder => $query
+                                            ->where('is_active', true)
+                                            ->whereIn('slug', ['raw-material', 'srm', 'finished-goods', 'mro']),
+                                    )
                                     ->getOptionLabelFromRecordUsing(
                                         fn (ItemCategory $record): string => $record->name.' - '.InventoryLabels::categoryType($record->category_type),
                                     )
@@ -61,7 +68,7 @@ class ItemForm
 
                                         $set('item_type', $itemType);
                                         $set('default_stage_id', self::stageIdFromCategory($state));
-                                        $set('requires_production', in_array($itemType, ['premix', 'semi_finished', 'product'], true));
+                                        $set('requires_production', in_array($itemType, ['semi_finished', 'product'], true));
                                     }),
                             ]),
                     ]),
@@ -155,8 +162,8 @@ class ItemForm
             return 'material';
         }
 
-        if ($category->slug === 'premix') {
-            return 'premix';
+        if (in_array($category->slug, ['srm', 'raw-clean', 'premix'], true)) {
+            return 'semi_finished';
         }
 
         return match ($category->category_type) {
@@ -178,8 +185,7 @@ class ItemForm
         }
 
         $stageCode = match (true) {
-            $category->slug === 'raw-clean' => ItemStageCode::RawClean->value,
-            $category->slug === 'srm' => ItemStageCode::Srm->value,
+            in_array($category->slug, ['srm', 'raw-clean', 'premix'], true) => ItemStageCode::Srm->value,
             $category->category_type === 'wip' => ItemStageCode::Wip->value,
             $category->category_type === 'finished_goods' => ItemStageCode::FinishedGoods->value,
             $category->category_type === 'mro' => ItemStageCode::Mro->value,

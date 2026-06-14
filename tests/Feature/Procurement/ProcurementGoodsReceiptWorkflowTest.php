@@ -259,7 +259,7 @@ class ProcurementGoodsReceiptWorkflowTest extends TestCase
             ->assertSet('itemId', $item->id)
             ->assertSet('showItemSearchResults', false)
             ->assertSet('itemSearch', 'CA0001 - Cabe Kriting')
-            ->assertSet('itemKind', 'Raw Material')
+            ->assertSet('itemKind', 'RM')
             ->assertSet('purchaseUnitId', $gram->id)
             ->assertSet('unitId', $gram->id)
             ->assertSet('conversionQty', 1.0);
@@ -370,7 +370,7 @@ class ProcurementGoodsReceiptWorkflowTest extends TestCase
 
         $this->assertContains($items[0]->id, collect($kencurResults)->pluck('id')->all());
         $kencurResult = collect($kencurResults)->firstWhere('id', $items[0]->id);
-        $this->assertSame('Raw Material', $kencurResult['category']);
+        $this->assertSame('RM', $kencurResult['category']);
         $this->assertSame(12500.0, $kencurResult['stock_qty']);
         $this->assertSame('GR', $kencurResult['stock_unit']);
         $this->assertSame(33.0, $kencurResult['hpp']);
@@ -401,6 +401,61 @@ class ProcurementGoodsReceiptWorkflowTest extends TestCase
             ->assertSet('itemId', $items[0]->id)
             ->assertSet('unitId', $unit->id)
             ->assertSet('purchaseUnitId', $unit->id);
+    }
+
+    public function test_procurement_workspace_displays_legacy_raw_clean_as_srm(): void
+    {
+        $this->prepareDatabase();
+
+        $user = $this->createUserWithRole('gudang-legacy-rc@erp.test', 'gudang');
+        $this->actingAs($user);
+
+        $gram = Unit::query()->updateOrCreate(['code' => 'GR'], [
+            'name' => 'Gram',
+            'is_base' => true,
+            'precision' => 4,
+            'is_active' => true,
+        ]);
+        $category = ItemCategory::query()->updateOrCreate(['slug' => 'raw-clean'], [
+            'name' => 'Raw Clean',
+            'category_type' => 'raw_material',
+            'is_active' => true,
+        ]);
+        $stage = ItemStage::query()->updateOrCreate(['code' => 'raw_clean'], [
+            'name' => 'Raw Clean',
+            'sequence' => 2,
+            'is_active' => true,
+        ]);
+        $item = Item::query()->create([
+            'sku' => 'RC-RAWIT',
+            'name' => 'Cabe Rawit',
+            'item_category_id' => $category->id,
+            'default_unit_id' => $gram->id,
+            'default_stage_id' => $stage->id,
+            'item_type' => 'semi_finished',
+            'requires_production' => true,
+            'is_perishable' => false,
+            'minimum_stock' => 0,
+            'purchase_price' => 0,
+            'latest_weighted_avg_cost' => 0,
+            'is_active' => true,
+        ]);
+
+        $results = Livewire::test(ProcurementRequestWorkspace::class)
+            ->set('itemSearch', 'rawit')
+            ->call('openItemSearchResults')
+            ->instance()
+            ->itemSearchResults();
+
+        $result = collect($results)->firstWhere('id', $item->id);
+
+        $this->assertNotNull($result);
+        $this->assertSame('SRM', $result['category']);
+
+        Livewire::test(ProcurementRequestWorkspace::class)
+            ->set('itemSearch', 'rawit')
+            ->call('selectItem', $item->id)
+            ->assertSet('itemKind', 'SRM');
     }
 
     public function test_procurement_workspace_does_not_duplicate_same_item_in_cart(): void
