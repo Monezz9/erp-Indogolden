@@ -16,9 +16,13 @@ class GoodsReceipt extends Model
     protected $fillable = [
         'receipt_number',
         'purchase_order_id',
+        'supplier_id',
         'warehouse_id',
         'receipt_date',
+        'invoice_number',
         'status',
+        'subtotal',
+        'grand_total',
         'notes',
         'created_by',
         'confirmed_by',
@@ -31,6 +35,8 @@ class GoodsReceipt extends Model
             'receipt_date' => 'date',
             'confirmed_at' => 'datetime',
             'status' => GoodsReceiptStatus::class,
+            'subtotal' => 'decimal:4',
+            'grand_total' => 'decimal:4',
         ];
     }
 
@@ -42,6 +48,11 @@ class GoodsReceipt extends Model
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);
+    }
+
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
     }
 
     public function creator(): BelongsTo

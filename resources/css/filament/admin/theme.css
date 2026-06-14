@@ -3020,7 +3020,7 @@ html:not(.dark) .fi-page .fi-ta-table thead {
     top: calc(100% + 0.3rem);
     left: 0;
     right: 0;
-    max-height: 18rem;
+    max-height: 280px;
     overflow: auto;
     border: 1px solid #E5E7EB;
     border-radius: 0.9rem;
@@ -3036,7 +3036,7 @@ html:not(.dark) .fi-page .fi-ta-table thead {
 }
 
 .ig-procurement-search-results button:hover {
-    background: #FFFDF7;
+    background: #FEF2F2;
 }
 
 .ig-procurement-search-results strong {

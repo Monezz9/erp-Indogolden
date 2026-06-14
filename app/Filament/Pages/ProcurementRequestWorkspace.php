@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use App\Enums\GoodsReceiptStatus;
-use App\Enums\PurchaseOrderStatus;
 use App\Models\GoodsReceipt;
 use App\Models\Item;
 use App\Models\PurchaseOrder;
@@ -28,9 +27,9 @@ class ProcurementRequestWorkspace extends Page
 
     protected string $view = 'filament.pages.procurement-request-workspace';
 
-    protected static ?string $title = 'Ruang Kerja Permintaan Pengadaan';
+    protected static ?string $title = 'Pengadaan';
 
-    protected static ?string $navigationLabel = 'Permintaan Pengadaan';
+    protected static ?string $navigationLabel = 'Pengadaan';
 
     protected static \UnitEnum|string|null $navigationGroup = 'Pengadaan';
 
@@ -45,6 +44,8 @@ class ProcurementRequestWorkspace extends Page
     public ?string $transactionNumber = null;
 
     public ?string $orderDate = null;
+
+    public ?string $invoiceNumber = null;
 
     public ?string $notes = null;
 
@@ -120,6 +121,13 @@ class ProcurementRequestWorkspace extends Page
                 return;
             }
 
+            if (collect($this->cart)->contains(fn (array $line): bool => (int) $line['item_id'] === $item->id)) {
+                Notification::make()->title('Barang sudah ada di draft')->warning()->send();
+                $this->dispatch('focus-procurement-item-search');
+
+                return;
+            }
+
             $unitOptions = $this->unitOptions();
 
             $this->cart[] = [
@@ -142,7 +150,8 @@ class ProcurementRequestWorkspace extends Page
 
             $this->resetLineInput();
 
-            Notification::make()->title('Barang ditambahkan ke draft PO')->success()->send();
+            Notification::make()->title('Barang ditambahkan')->success()->send();
+            $this->dispatch('focus-procurement-item-search');
         } catch (ValidationException $exception) {
             Notification::make()
                 ->title('Barang tidak dapat ditambahkan')
@@ -186,7 +195,7 @@ class ProcurementRequestWorkspace extends Page
         $this->cart = [];
     }
 
-    public function createPurchaseOrder(PurchaseOrderService $service): void
+    public function createPurchaseOrder(GoodsReceiptService $service): void
     {
         $user = Auth::user();
 
@@ -201,8 +210,12 @@ class ProcurementRequestWorkspace extends Page
         }
 
         if ($this->cart === []) {
-            Notification::make()->title('Tambahkan minimal 1 barang ke draft PO')->warning()->send();
+            Notification::make()->title('Tambahkan minimal 1 barang ke pengadaan')->warning()->send();
+            return;
+        }
 
+        if (blank($this->orderDate)) {
+            Notification::make()->title('Tanggal pengadaan wajib diisi')->warning()->send();
             return;
         }
 
@@ -210,7 +223,7 @@ class ProcurementRequestWorkspace extends Page
             $this->validateCartItems();
         } catch (ValidationException $exception) {
             Notification::make()
-                ->title('Draft PO belum valid')
+                ->title('Pengadaan belum valid')
                 ->body(collect($exception->errors())->flatten()->implode(' '))
                 ->danger()
                 ->send();
@@ -221,12 +234,12 @@ class ProcurementRequestWorkspace extends Page
         try {
             $this->warehouseId = $this->centralWarehouseId();
 
-            $service->createDraft([
-                'po_number' => $this->transactionNumber,
+            $service->createDirectProcurement([
+                'receipt_number' => $this->transactionNumber,
                 'supplier_id' => $this->supplierId,
                 'warehouse_id' => $this->warehouseId,
-                'order_date' => $this->orderDate,
-                'expected_date' => $this->orderDate,
+                'receipt_date' => $this->orderDate,
+                'invoice_number' => $this->invoiceNumber,
                 'notes' => $this->notes,
             ], array_map(fn (array $line): array => [
                 'item_id' => $line['item_id'],
@@ -242,14 +255,7 @@ class ProcurementRequestWorkspace extends Page
                 'notes' => $line['notes'],
             ], $this->cart), $user);
 
-            $purchaseOrder = PurchaseOrder::query()
-                ->where('po_number', $this->transactionNumber)
-                ->firstOrFail();
-
-            $service->submit($purchaseOrder, $user);
-            $service->financeApprove($purchaseOrder->refresh(), $user);
-
-            $this->reset(['notes', 'cart']);
+            $this->reset(['notes', 'invoiceNumber', 'cart']);
             $this->resetLineInput();
             $this->taxAmount = 0;
             $this->transactionNumber = $this->nextTransactionNumber();
@@ -258,7 +264,7 @@ class ProcurementRequestWorkspace extends Page
 
             Notification::make()->title('Pengadaan disimpan')->success()->send();
         } catch (Throwable $exception) {
-            Notification::make()->title('Gagal membuat PO')->body($exception->getMessage())->danger()->send();
+            Notification::make()->title('Gagal menyimpan pengadaan')->body($exception->getMessage())->danger()->send();
         }
     }
 
@@ -381,20 +387,17 @@ class ProcurementRequestWorkspace extends Page
     }
 
     /**
-     * @return Collection<int, PurchaseOrder>
+     * @return Collection<int, GoodsReceipt>
      */
     public function rows(): Collection
     {
-        return PurchaseOrder::query()
+        return GoodsReceipt::query()
             ->with([
                 'supplier',
                 'warehouse',
                 'items.item',
                 'items.purchaseUnit',
                 'items.unit',
-                'goodsReceipts.items.item',
-                'goodsReceipts.items.purchaseUnit',
-                'goodsReceipts.items.unit',
             ])
             ->when($this->status !== 'all', fn ($query) => $query->where('status', $this->status))
             ->latest('id')
@@ -452,7 +455,8 @@ class ProcurementRequestWorkspace extends Page
         $search = trim((string) $this->itemSearch);
 
         return Item::query()
-            ->with(['category:id,name,category_type', 'defaultStage:id,name,code'])
+            ->with(['category:id,name,category_type', 'defaultStage:id,name,code', 'defaultUnit:id,code'])
+            ->withSum('stockBalances as current_stock', 'qty_on_hand')
             ->where('is_active', true)
             ->where(fn (Builder $query): Builder => $this->applyAllowedProcurementItemQuery($query))
             ->when($search !== '', function ($query) use ($search): void {
@@ -461,11 +465,14 @@ class ProcurementRequestWorkspace extends Page
             ->orderBy('sku')
             ->orderBy('name')
             ->limit(12)
-            ->get(['id', 'sku', 'name', 'item_category_id', 'default_stage_id'])
+            ->get(['id', 'sku', 'name', 'item_category_id', 'default_stage_id', 'default_unit_id', 'latest_weighted_avg_cost'])
             ->map(fn (Item $item): array => [
                 'id' => $item->id,
                 'label' => $this->itemSearchLabel($item),
                 'category' => $item->category?->name ?? '-',
+                'stock_qty' => (float) ($item->current_stock ?? 0),
+                'stock_unit' => $item->defaultUnit?->code ?? '-',
+                'hpp' => (float) ($item->latest_weighted_avg_cost ?? 0),
             ])
             ->all();
     }
@@ -565,7 +572,7 @@ class ProcurementRequestWorkspace extends Page
 
     public function canSaveDraft(): bool
     {
-        return filled($this->supplierId) && $this->cart !== [];
+        return filled($this->supplierId) && filled($this->orderDate) && $this->cart !== [];
     }
 
     public function cartLineIsAllowed(int $itemId): bool
@@ -579,16 +586,16 @@ class ProcurementRequestWorkspace extends Page
 
     public function statusOptions(): array
     {
-        return ['all' => 'Semua'] + PurchaseOrderStatus::options();
+        return ['all' => 'Semua'] + GoodsReceiptStatus::options();
     }
 
     protected function nextTransactionNumber(): string
     {
-        $prefix = 'PO-'.now()->format('Ymd');
-        $last = PurchaseOrder::query()
-            ->where('po_number', 'like', $prefix.'-%')
+        $prefix = 'PG-'.now()->format('Ymd');
+        $last = GoodsReceipt::query()
+            ->where('receipt_number', 'like', $prefix.'-%')
             ->latest('id')
-            ->value('po_number');
+            ->value('receipt_number');
 
         $next = is_string($last) ? ((int) str($last)->afterLast('-')->toString()) + 1 : 1;
 
@@ -655,25 +662,39 @@ class ProcurementRequestWorkspace extends Page
         $needle = trim($search);
         $normalized = str($needle)->lower()->trim()->toString();
         $stageAliases = match ($normalized) {
-            'rm', 'raw material', 'raw', 'bahan baku' => ['raw_dirty'],
+            'rm', 'raw material', 'raw_material', 'raw-material', 'raw', 'bahan baku' => ['raw_dirty', 'raw_clean'],
             'rc', 'raw clean', 'clean' => ['raw_clean'],
             'srm' => ['srm'],
             'fg', 'finished goods' => ['finished_goods'],
+            'operasional', 'operational', 'mro' => ['mro'],
             'premix' => ['raw_clean'],
+            default => [],
+        };
+        $categoryAliases = match ($normalized) {
+            'rm', 'raw material', 'raw_material', 'raw-material', 'raw', 'bahan baku' => ['rm', 'raw material', 'raw_material', 'raw-material', 'bahan baku'],
+            'srm' => ['srm'],
+            'fg', 'finished goods', 'finished_goods', 'finished-goods' => ['fg', 'finished goods', 'finished_goods', 'finished-goods'],
+            'operasional', 'operational', 'mro' => ['operasional', 'operational', 'mro'],
             default => [],
         };
 
         return $query
             ->where('sku', 'like', '%'.$needle.'%')
             ->orWhere('name', 'like', '%'.$needle.'%')
-            ->orWhereHas('category', function (Builder $query) use ($needle, $normalized): void {
-                $query
-                    ->where('name', 'like', '%'.$needle.'%')
-                    ->orWhere('category_type', 'like', '%'.$normalized.'%');
+            ->orWhereHas('category', function (Builder $query) use ($needle, $normalized, $categoryAliases): void {
+                $query->where(function (Builder $query) use ($needle, $normalized, $categoryAliases): void {
+                    $query
+                        ->where('name', 'like', '%'.$needle.'%')
+                        ->orWhere('slug', 'like', '%'.$normalized.'%')
+                        ->orWhere('category_type', 'like', '%'.$normalized.'%');
 
-                if (in_array($normalized, ['rm', 'raw', 'bahan baku'], true)) {
-                    $query->orWhere('category_type', 'raw_material');
-                }
+                    foreach ($categoryAliases as $alias) {
+                        $query
+                            ->orWhereRaw('LOWER(name) = ?', [$alias])
+                            ->orWhereRaw('LOWER(slug) = ?', [$alias])
+                            ->orWhereRaw('LOWER(category_type) = ?', [$alias]);
+                    }
+                });
             })
             ->orWhereHas('defaultStage', function (Builder $query) use ($needle, $stageAliases): void {
                 $query
@@ -688,20 +709,34 @@ class ProcurementRequestWorkspace extends Page
 
     protected function applyAllowedProcurementItemQuery(Builder $query): Builder
     {
+        $allowedCategories = [
+            'rm',
+            'raw material',
+            'raw_material',
+            'raw-material',
+            'srm',
+            'fg',
+            'finished goods',
+            'finished_goods',
+            'finished-goods',
+            'operasional',
+            'operational',
+            'mro',
+        ];
+
         return $query
-            ->whereHas('category', function (Builder $query): void {
-                $query
-                    ->whereIn('slug', ['raw-material', 'srm'])
-                    ->orWhereIn('name', ['Raw Material', 'SRM'])
-                    ->orWhere(function (Builder $query): void {
+            ->whereHas('category', function (Builder $query) use ($allowedCategories): void {
+                $query->where(function (Builder $query) use ($allowedCategories): void {
+                    foreach ($allowedCategories as $alias) {
                         $query
-                            ->where('category_type', 'raw_material')
-                            ->where('slug', '!=', 'raw-clean')
-                            ->where('name', '!=', 'Raw Clean');
-                    });
+                            ->orWhereRaw('LOWER(name) = ?', [$alias])
+                            ->orWhereRaw('LOWER(slug) = ?', [$alias])
+                            ->orWhereRaw('LOWER(category_type) = ?', [$alias]);
+                    }
+                });
             })
             ->orWhereHas('defaultStage', function (Builder $query): void {
-                $query->whereIn('code', ['raw_dirty', 'srm']);
+                $query->whereIn('code', ['raw_dirty', 'raw_clean', 'srm', 'finished_goods', 'mro']);
             });
     }
 
@@ -709,14 +744,31 @@ class ProcurementRequestWorkspace extends Page
     {
         $item->loadMissing(['category:id,name,slug,category_type', 'defaultStage:id,code']);
 
-        return in_array($item->category?->slug, ['raw-material', 'srm'], true)
-            || in_array($item->category?->name, ['Raw Material', 'SRM'], true)
-            || (
-                $item->category?->category_type === 'raw_material'
-                && $item->category?->slug !== 'raw-clean'
-                && $item->category?->name !== 'Raw Clean'
-            )
-            || in_array($item->defaultStage?->code, ['raw_dirty', 'srm'], true);
+        $categoryValues = collect([
+            $item->category?->slug,
+            $item->category?->name,
+            $item->category?->category_type,
+        ])
+            ->filter()
+            ->map(fn (string $value): string => str($value)->lower()->trim()->toString())
+            ->all();
+        $allowedCategories = [
+            'rm',
+            'raw material',
+            'raw_material',
+            'raw-material',
+            'srm',
+            'fg',
+            'finished goods',
+            'finished_goods',
+            'finished-goods',
+            'operasional',
+            'operational',
+            'mro',
+        ];
+
+        return collect($categoryValues)->intersect($allowedCategories)->isNotEmpty()
+            || in_array($item->defaultStage?->code, ['raw_dirty', 'raw_clean', 'srm', 'finished_goods', 'mro'], true);
     }
 
     protected function ensureProcurementItemAllowed(Item $item): void
@@ -726,7 +778,7 @@ class ProcurementRequestWorkspace extends Page
         }
 
         throw ValidationException::withMessages([
-            'item_id' => 'Hanya barang kategori RM dan SRM yang dapat diajukan dalam pengadaan.',
+            'item_id' => 'Barang pengadaan harus kategori RM, SRM, FG, atau Operasional.',
         ]);
     }
 
@@ -743,7 +795,7 @@ class ProcurementRequestWorkspace extends Page
 
             if (! $item || ! $this->isAllowedProcurementItem($item)) {
                 throw ValidationException::withMessages([
-                    'cart' => 'Draft PO berisi barang kategori tidak valid. Hanya RM dan SRM yang dapat diajukan dalam pengadaan.',
+                    'cart' => 'Draft pengadaan berisi barang kategori tidak valid. Gunakan RM, SRM, FG, atau Operasional.',
                 ]);
             }
         }
@@ -756,15 +808,7 @@ class ProcurementRequestWorkspace extends Page
 
     protected function defaultPurchaseUnitId(?Item $item): ?int
     {
-        if (! $item?->default_unit_id) {
-            return null;
-        }
-
-        if (strtoupper((string) $item->defaultUnit?->code) === 'GR') {
-            return Unit::query()->where('code', 'KG')->value('id') ?? $item->default_unit_id;
-        }
-
-        return $item->default_unit_id;
+        return $item?->default_unit_id;
     }
 
     protected function defaultConversionQty(?int $purchaseUnitId, ?int $stockUnitId): float

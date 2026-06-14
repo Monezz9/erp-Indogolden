@@ -116,10 +116,15 @@ class ItemsTable
                     ->icon('heroicon-o-eye')
                     ->color('info')
                     ->outlined()
-                    ->iconButton()
                     ->modalWidth(Width::Large)
                     ->modalSubmitAction(false)
                     ->modalContent(fn ($record) => view('filament.resources.items.tables.actions.item-detail', ['record' => $record])),
+                Action::make('history')
+                    ->label('Histori')
+                    ->icon('heroicon-o-clock')
+                    ->color('gray')
+                    ->outlined()
+                    ->url(fn ($record): string => ItemResource::getUrl('history', ['record' => $record])),
                 EditAction::make()
                     ->label('Edit')
                     ->iconButton()

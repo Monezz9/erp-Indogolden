@@ -40,6 +40,7 @@ class StockMovementForm
                         Select::make('direction')->label('Arah Stok')->required()->options([
                             'in' => 'Masuk',
                             'out' => 'Keluar',
+                            'loss' => 'Audit Susut',
                         ]),
                         TextInput::make('qty')->label('Qty')->required()->numeric(),
                         TextInput::make('unit_cost')->label('Harga Satuan')->numeric()->default(0),

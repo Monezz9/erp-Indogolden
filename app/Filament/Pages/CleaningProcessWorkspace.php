@@ -42,6 +42,11 @@ class CleaningProcessWorkspace extends Page
 
     public ?string $notes = null;
 
+    /**
+     * @var array<int, float|string|null>
+     */
+    public array $completionQty = [];
+
     public static function canAccess(): bool
     {
         $user = Auth::user();
@@ -55,7 +60,7 @@ class CleaningProcessWorkspace extends Page
         $this->warehouseId = $this->centralWarehouseId();
     }
 
-    public function post(CleaningProcessService $service): void
+    public function start(CleaningProcessService $service): void
     {
         $user = Auth::user();
 
@@ -66,25 +71,50 @@ class CleaningProcessWorkspace extends Page
         try {
             $item = Item::query()->findOrFail($this->itemId);
 
-            $service->post([
+            $service->start([
                 'process_date' => $this->processDate,
                 'warehouse_id' => $this->warehouseId,
                 'item_id' => $item->id,
                 'unit_id' => $item->default_unit_id,
                 'input_qty' => $this->inputQty,
-                'output_qty' => $this->outputQty,
                 'notes' => $this->notes,
             ], $user);
 
             $this->reset(['itemId', 'notes']);
             $this->inputQty = 0;
-            $this->outputQty = 0;
             $this->processDate = now()->toDateString();
 
-            Notification::make()->title('Pembersihan bahan berhasil diposting')->success()->send();
+            Notification::make()->title('Grooming dimulai')->success()->send();
         } catch (Throwable $exception) {
             Notification::make()
-                ->title('Gagal posting pembersihan')
+                ->title('Gagal mulai grooming')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    public function complete(int $processId, CleaningProcessService $service): void
+    {
+        $user = Auth::user();
+
+        if (! $user instanceof User) {
+            return;
+        }
+
+        try {
+            $process = CleaningProcess::query()->findOrFail($processId);
+
+            $service->complete($process, [
+                'output_qty' => (float) ($this->completionQty[$processId] ?? 0),
+            ], $user);
+
+            unset($this->completionQty[$processId]);
+
+            Notification::make()->title('Grooming selesai')->success()->send();
+        } catch (Throwable $exception) {
+            Notification::make()
+                ->title('Gagal selesaikan grooming')
                 ->body($exception->getMessage())
                 ->danger()
                 ->send();
@@ -104,6 +134,10 @@ class CleaningProcessWorkspace extends Page
     {
         return Item::query()
             ->where('is_active', true)
+            ->whereHas('category', function ($query): void {
+                $query->where('slug', 'raw-material')
+                    ->orWhereRaw('LOWER(name) IN (?, ?)', ['raw material', 'rm']);
+            })
             ->whereHas('stockBalances', function ($query): void {
                 $query->where('qty_on_hand', '>', 0)
                     ->whereHas('stage', fn ($stage) => $stage->where('code', ItemStageCode::RawDirty->value))
@@ -142,12 +176,12 @@ class CleaningProcessWorkspace extends Page
 
     public function shrinkageQty(): float
     {
-        return max($this->inputQty - $this->outputQty, 0);
+        return 0;
     }
 
     public function shrinkagePercent(): float
     {
-        return $this->inputQty > 0 ? ($this->shrinkageQty() / $this->inputQty) * 100 : 0;
+        return 0;
     }
 
     /**

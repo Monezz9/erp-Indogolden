@@ -13,6 +13,7 @@ use App\Models\StockBalance;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 
 class CleaningProcessService
@@ -22,30 +23,42 @@ class CleaningProcessService
         protected ActivityLogService $activityLogService,
     ) {}
 
-    public function post(array $data, User $actor): CleaningProcess
+    public function start(array $data, User $actor): CleaningProcess
     {
         $inputQty = (float) ($data['input_qty'] ?? 0);
-        $outputQty = (float) ($data['output_qty'] ?? 0);
+        $notes = trim((string) ($data['notes'] ?? ''));
 
         if ($inputQty <= 0) {
             throw new InvalidArgumentException('Qty masuk pembersihan harus lebih besar dari 0.');
         }
 
-        if ($outputQty <= 0) {
-            throw new InvalidArgumentException('Qty hasil bersih harus lebih besar dari 0.');
+        if ($notes === '') {
+            throw ValidationException::withMessages([
+                'notes' => 'Catatan grooming wajib diisi.',
+            ]);
         }
 
-        if ($outputQty > $inputQty) {
-            throw new InvalidArgumentException('Qty hasil bersih tidak boleh lebih besar dari qty masuk.');
-        }
-
-        return DB::transaction(function () use ($data, $actor, $inputQty, $outputQty): CleaningProcess {
+        return DB::transaction(function () use ($data, $actor, $inputQty, $notes): CleaningProcess {
             $rawDirtyStageId = $this->stageId(ItemStageCode::RawDirty);
-            $rawCleanStageId = $this->stageId(ItemStageCode::RawClean);
-            $item = Item::query()->findOrFail((int) $data['item_id']);
+            $srmStageId = $this->stageId(ItemStageCode::Srm);
+            $item = Item::query()->with('category')->findOrFail((int) $data['item_id']);
+
+            if (! $this->isRawMaterialItem($item)) {
+                throw ValidationException::withMessages([
+                    'item_id' => 'Hanya barang kategori RM yang dapat diproses grooming.',
+                ]);
+            }
+
             $outputItem = isset($data['output_item_id'])
-                ? Item::query()->findOrFail((int) $data['output_item_id'])
-                : $this->resolveOutputItem($item, $rawCleanStageId);
+                ? Item::query()->with('category')->findOrFail((int) $data['output_item_id'])
+                : $this->resolveOutputItem($item, $srmStageId);
+
+            if (! $this->isSrmItem($outputItem)) {
+                throw ValidationException::withMessages([
+                    'output_item_id' => 'Output grooming harus barang kategori SRM.',
+                ]);
+            }
+
             $warehouseId = (int) $data['warehouse_id'];
 
             $balance = StockBalance::query()
@@ -65,9 +78,6 @@ class CleaningProcessService
 
             $inputUnitCost = (float) $balance->avg_cost;
             $totalInputCost = $inputQty * $inputUnitCost;
-            $outputUnitCost = $totalInputCost / $outputQty;
-            $shrinkageQty = $inputQty - $outputQty;
-            $shrinkagePercent = ($shrinkageQty / $inputQty) * 100;
 
             $process = CleaningProcess::query()->create([
                 'process_number' => $data['process_number'] ?? $this->makeNumber(),
@@ -77,16 +87,16 @@ class CleaningProcessService
                 'output_item_id' => $outputItem->id,
                 'unit_id' => (int) ($data['unit_id'] ?? $outputItem->default_unit_id),
                 'input_qty' => $inputQty,
-                'output_qty' => $outputQty,
-                'shrinkage_qty' => $shrinkageQty,
-                'shrinkage_percent' => $shrinkagePercent,
+                'output_qty' => 0,
+                'shrinkage_qty' => 0,
+                'shrinkage_percent' => 0,
                 'input_unit_cost' => $inputUnitCost,
-                'output_unit_cost' => $outputUnitCost,
+                'output_unit_cost' => 0,
                 'total_input_cost' => $totalInputCost,
-                'status' => 'posted',
-                'notes' => $data['notes'] ?? null,
+                'status' => 'in_progress',
+                'notes' => $notes,
                 'created_by' => $actor->id,
-                'posted_at' => now(),
+                'posted_at' => null,
             ]);
 
             $outMovement = $this->stockMovementService->createDraft([
@@ -112,6 +122,63 @@ class CleaningProcessService
             $this->stockMovementService->submit($outMovement);
             $this->stockMovementService->approve($outMovement, $actor);
 
+            $this->activityLogService->log(
+                module: 'production',
+                action: 'start_cleaning_process',
+                subject: $process,
+                actor: $actor,
+                after: $process->toArray(),
+            );
+
+            return $process->fresh(['item', 'outputItem', 'warehouse', 'unit']);
+        });
+    }
+
+    public function complete(CleaningProcess $process, array $data, User $actor): CleaningProcess
+    {
+        $outputQty = (float) ($data['output_qty'] ?? 0);
+
+        if ($process->status !== 'in_progress') {
+            throw new InvalidArgumentException('Hanya grooming in progress yang dapat diselesaikan.');
+        }
+
+        if ($outputQty <= 0) {
+            throw new InvalidArgumentException('Qty hasil bersih harus lebih besar dari 0.');
+        }
+
+        if ($outputQty > (float) $process->input_qty) {
+            throw new InvalidArgumentException('Qty hasil bersih tidak boleh lebih besar dari qty masuk.');
+        }
+
+        return DB::transaction(function () use ($process, $data, $actor, $outputQty): CleaningProcess {
+            $process = CleaningProcess::query()
+                ->with(['item.category', 'outputItem.category'])
+                ->lockForUpdate()
+                ->findOrFail($process->id);
+
+            if ($process->status !== 'in_progress') {
+                throw new InvalidArgumentException('Hanya grooming in progress yang dapat diselesaikan.');
+            }
+
+            $srmStageId = $this->stageId(ItemStageCode::Srm);
+            $outputItem = isset($data['output_item_id'])
+                ? Item::query()->with('category')->findOrFail((int) $data['output_item_id'])
+                : $process->outputItem;
+
+            if (! $outputItem || ! $this->isSrmItem($outputItem)) {
+                throw ValidationException::withMessages([
+                    'output_item_id' => 'Output grooming harus barang kategori SRM.',
+                ]);
+            }
+
+            $inputQty = (float) $process->input_qty;
+            $inputUnitCost = (float) $process->input_unit_cost;
+            $totalInputCost = (float) $process->total_input_cost;
+            $outputUnitCost = $totalInputCost / $outputQty;
+            $shrinkageQty = $inputQty - $outputQty;
+            $shrinkagePercent = ($shrinkageQty / $inputQty) * 100;
+            $warehouseId = (int) $process->warehouse_id;
+
             $inMovement = $this->stockMovementService->createDraft([
                 'movement_number' => 'SM-'.now()->addSecond()->format('YmdHisv'),
                 'movement_date' => now(),
@@ -128,16 +195,53 @@ class CleaningProcessService
                 'direction' => 'in',
                 'qty' => $outputQty,
                 'unit_cost' => $outputUnitCost,
-                'to_stage_id' => $rawCleanStageId,
+                'to_stage_id' => $srmStageId,
                 'to_warehouse_id' => $warehouseId,
             ]]);
 
             $this->stockMovementService->submit($inMovement);
             $this->stockMovementService->approve($inMovement, $actor);
 
+            if ($shrinkageQty > 0) {
+                $rawDirtyStageId = $this->stageId(ItemStageCode::RawDirty);
+                $lossMovement = $this->stockMovementService->createDraft([
+                    'movement_number' => 'SM-'.now()->addSeconds(2)->format('YmdHisv'),
+                    'movement_date' => now(),
+                    'movement_type' => MovementType::WasteShrinkage->value,
+                    'status' => ApprovalStatus::Draft,
+                    'from_warehouse_id' => $warehouseId,
+                    'notes' => 'Susut grooming '.$process->process_number,
+                    'created_by' => $actor->id,
+                    'reference_type' => $process::class,
+                    'reference_id' => $process->id,
+                ], [[
+                    'item_id' => $process->item_id,
+                    'unit_id' => $process->unit_id,
+                    'direction' => 'loss',
+                    'qty' => $shrinkageQty,
+                    'unit_cost' => $inputUnitCost,
+                    'from_stage_id' => $rawDirtyStageId,
+                    'from_warehouse_id' => $warehouseId,
+                    'notes' => 'Susut grooming '.$process->process_number,
+                ]]);
+
+                $this->stockMovementService->submit($lossMovement);
+                $this->stockMovementService->approve($lossMovement, $actor);
+            }
+
+            $process->update([
+                'output_item_id' => $outputItem->id,
+                'output_qty' => $outputQty,
+                'shrinkage_qty' => $shrinkageQty,
+                'shrinkage_percent' => $shrinkagePercent,
+                'output_unit_cost' => $outputUnitCost,
+                'status' => 'completed',
+                'posted_at' => now(),
+            ]);
+
             $this->activityLogService->log(
                 module: 'production',
-                action: 'post_cleaning_process',
+                action: 'complete_cleaning_process',
                 subject: $process,
                 actor: $actor,
                 after: $process->toArray(),
@@ -145,6 +249,13 @@ class CleaningProcessService
 
             return $process->fresh(['item', 'outputItem', 'warehouse', 'unit']);
         });
+    }
+
+    public function post(array $data, User $actor): CleaningProcess
+    {
+        $process = $this->start($data, $actor);
+
+        return $this->complete($process, $data, $actor);
     }
 
     protected function stageId(ItemStageCode $code): int
@@ -165,54 +276,59 @@ class CleaningProcessService
         return sprintf('%s-%04d', $prefix, $next);
     }
 
-    protected function resolveOutputItem(Item $inputItem, int $rawCleanStageId): Item
+    protected function resolveOutputItem(Item $inputItem, int $srmStageId): Item
     {
-        $categoryId = ItemCategory::query()->where('slug', 'raw-clean')->value('id');
+        $categoryId = ItemCategory::query()->where('slug', 'srm')->value('id');
 
         if (! $categoryId) {
-            throw new InvalidArgumentException('Kategori Raw Clean belum tersedia.');
+            throw ValidationException::withMessages([
+                'output_item_id' => 'Item SRM tujuan belum tersedia. Buat master barang SRM terlebih dahulu.',
+            ]);
         }
 
         $existing = Item::query()
-            ->where('default_stage_id', $rawCleanStageId)
+            ->where('default_stage_id', $srmStageId)
             ->where('item_category_id', $categoryId)
-            ->where('name', $inputItem->name)
+            ->where(function ($query) use ($inputItem): void {
+                $baseSku = $this->baseMaterialSku((string) $inputItem->sku);
+
+                $query->where('name', $inputItem->name)
+                    ->orWhere('sku', 'SRM-'.$baseSku);
+            })
             ->first();
 
         if ($existing) {
             return $existing;
         }
 
-        $baseSku = preg_replace('/^(RM|RC)-/', '', $inputItem->sku) ?: $inputItem->sku;
-        $sku = $this->uniqueRawCleanSku('RC-'.$baseSku);
-
-        return Item::query()->create([
-            'sku' => $sku,
-            'name' => $inputItem->name,
-            'item_category_id' => $categoryId,
-            'default_unit_id' => $inputItem->default_unit_id,
-            'default_stage_id' => $rawCleanStageId,
-            'item_type' => 'material',
-            'requires_production' => false,
-            'is_perishable' => $inputItem->is_perishable,
-            'minimum_stock' => 0,
-            'purchase_price' => $inputItem->purchase_price,
-            'selling_price' => $inputItem->selling_price,
-            'latest_weighted_avg_cost' => 0,
-            'description' => 'Hasil pembersihan dari '.$inputItem->sku,
-            'is_active' => true,
+        throw ValidationException::withMessages([
+            'output_item_id' => 'Item SRM tujuan belum tersedia. Buat master barang SRM terlebih dahulu.',
         ]);
     }
 
-    protected function uniqueRawCleanSku(string $sku): string
+    protected function isRawMaterialItem(Item $item): bool
     {
-        $candidate = $sku;
-        $suffix = 2;
+        $category = $item->category;
+        $name = str($category?->name ?? '')->lower()->squish()->toString();
+        $slug = str($category?->slug ?? '')->lower()->squish()->toString();
 
-        while (Item::query()->where('sku', $candidate)->exists()) {
-            $candidate = $sku.'-'.$suffix++;
-        }
+        return $slug === 'raw-material'
+            || $name === 'raw material'
+            || $name === 'rm';
+    }
 
-        return $candidate;
+    protected function isSrmItem(Item $item): bool
+    {
+        $category = $item->category;
+        $name = str($category?->name ?? '')->lower()->squish()->toString();
+        $slug = str($category?->slug ?? '')->lower()->squish()->toString();
+
+        return $slug === 'srm'
+            || $name === 'srm';
+    }
+
+    protected function baseMaterialSku(string $sku): string
+    {
+        return preg_replace('/^(RM|SRM|RC)-/i', '', $sku) ?: $sku;
     }
 }

@@ -4,6 +4,7 @@ namespace App\Filament\Resources\Items;
 
 use App\Filament\Resources\Items\Pages\CreateItem;
 use App\Filament\Resources\Items\Pages\EditItem;
+use App\Filament\Resources\Items\Pages\ItemHistory;
 use App\Filament\Resources\Items\Pages\ListItems;
 use App\Filament\Resources\Items\Schemas\ItemForm;
 use App\Filament\Resources\Items\Tables\ItemsTable;
@@ -52,6 +53,7 @@ class ItemResource extends Resource
             'index' => ListItems::route('/'),
             'create' => CreateItem::route('/create'),
             'edit' => EditItem::route('/{record}/edit'),
+            'history' => ItemHistory::route('/{record}/history'),
         ];
     }
 
